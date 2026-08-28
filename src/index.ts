@@ -1,4 +1,8 @@
-// The public API (createVad, session types) is assembled in Task 5 of
-// docs/superpowers/plans/2026-08-28-vadkit-core.md. This file exists so the
-// package has a build entry point; it is replaced, not extended.
-export {};
+export { ChunkBuffer } from "./engine/chunkBuffer.js";
+export { LinearResampler } from "./engine/resampler.js";
+export { DEFAULT_VAD_OPTIONS, Segmenter } from "./engine/segmenter.js";
+export type { VadEvent, VadFrame, VadOptions } from "./engine/segmenter.js";
+export { createVad, VadStream } from "./engine/vadStream.js";
+export type { VadCallbacks } from "./engine/vadStream.js";
+export { SAMPLE_RATE } from "./types.js";
+export type { ProviderFactory, VadProvider } from "./types.js";
