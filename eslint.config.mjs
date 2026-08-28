@@ -16,8 +16,8 @@ export default defineConfig([
     ],
     languageOptions: {
       parserOptions: {
-        // eslint.config.mjs is deliberately outside tsconfig's include.
-        projectService: { allowDefaultProject: ["eslint.config.mjs"] },
+        // Config files are deliberately outside tsconfig's include.
+        projectService: { allowDefaultProject: ["eslint.config.mjs", "commitlint.config.mjs"] },
         tsconfigRootDir: import.meta.dirname,
       },
     },
