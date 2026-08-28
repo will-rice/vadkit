@@ -5,8 +5,8 @@ Status: draft, awaiting review
 
 ## Goals
 
-- One TypeScript package that runs multiple VAD models behind a single
-  interface: FireRedVAD, Silero VAD, and TEN-VAD in v1.
+- One TypeScript package that runs multiple VAD backends behind a single
+  interface: FireRedVAD, Silero VAD, TEN-VAD, and WebRTC VAD in v1.
 - Batteries-included session layer: microphone capture, resampling, speech
   start/end events, and the utterance's raw audio delivered on speech end
   (ready for ASR handoff).
@@ -62,17 +62,31 @@ happens inside `createVad`:
 fireRedVad(options?: { model?: string | Uint8Array }): ProviderFactory
 sileroVad(options?: { model?: string | Uint8Array }): ProviderFactory
 tenVad(options?: { model?: string | Uint8Array }): ProviderFactory
+webrtcVad(options?: { aggressiveness?: 0 | 1 | 2 | 3; frameMs?: 10 | 20 | 30 }): ProviderFactory
 ```
 
 v1 geometries:
 
-| Provider   | window | hop | frame  | state                          |
-|------------|--------|-----|--------|--------------------------------|
-| FireRedVAD | 400    | 160 | 10 ms  | packed FSMN caches [1,1024,19] |
-| Silero v5  | 512    | 512 | 32 ms  | LSTM state [2,1,128]           |
-| TEN-VAD    | 768*   | 256 | 16 ms  | model-internal / hidden states |
+| Provider   | window | hop  | frame  | state                          | runtime          |
+|------------|--------|------|--------|--------------------------------|------------------|
+| FireRedVAD | 400    | 160  | 10 ms  | packed FSMN caches [1,1024,19] | onnxruntime-web  |
+| Silero v5  | 512    | 512  | 32 ms  | LSTM state [2,1,128]           | onnxruntime-web  |
+| TEN-VAD    | 768*   | 256  | 16 ms  | model-internal / hidden states | onnxruntime-web* |
+| WebRTC VAD | 160†   | 160† | 10 ms† | GMM adaptation state           | wasm (libfvad)   |
 
-\* TEN-VAD geometry to be confirmed during implementation (see Risks).
+\* TEN-VAD geometry and runtime to be confirmed during implementation (see
+Risks).
+† WebRTC VAD has no overlap (window == hop) and supports 10/20/30 ms frames
+via the `frameMs` option; 10 ms is the default for finest granularity.
+
+**Binary providers.** WebRTC VAD emits hard 0/1 decisions, not
+probabilities. The provider returns them as probabilities of exactly 0.0
+and 1.0, which the engine's smoothing turns into a fraction-of-recent-
+frames-voiced value, so the segmenter's threshold and hangover logic work
+unchanged. `speechThreshold` then reads as "fraction of the smoothing
+window that is voiced" — documented on the factory. Sensitivity is tuned
+primarily via `aggressiveness` (0 = most permissive, 3 = most aggressive),
+mapping to the four modes of the reference implementation.
 
 ### Layer 2: Engine
 
@@ -135,7 +149,9 @@ Bundled in the npm package under `models/` and resolved per provider via
 factory's `model` option (URL or bytes). Sizes: FireRed e2e ~3.3 MB
 (Apache-2.0), Silero ~2 MB (MIT), TEN-VAD ~0.3 MB (Apache-2.0) — ~6 MB
 total, in line with @ricky0123/vad-web's precedent of bundling Silero.
-Licenses reproduced in `models/NOTICE`.
+WebRTC VAD has no model file; its GMM parameters are compiled into the
+libfvad wasm binary (<100 KB, BSD-3-Clause), vendored with the Emscripten
+build script that produced it. Licenses reproduced in `models/NOTICE`.
 
 ## Package layout
 
@@ -150,7 +166,8 @@ vadkit
 │  └─ providers/
 │     ├─ fireredvad.ts  # export via "vadkit/fireredvad"
 │     ├─ silero.ts      # export via "vadkit/silero"
-│     └─ ten.ts         # export via "vadkit/ten"
+│     ├─ ten.ts         # export via "vadkit/ten"
+│     └─ webrtc.ts      # export via "vadkit/webrtc" (no ort dependency)
 ├─ models/
 ├─ tests/               # vitest, ort-web under Node
 └─ demo/                # vite: all providers side by side on one mic feed
@@ -182,11 +199,23 @@ vadkit
 3. **AudioWorklet asset shipping.** The worklet file must be servable by
    consumers' bundlers; ship as a `?url`-importable asset plus a documented
    fallback (inline blob URL) for bundlers that mangle worklet assets.
+4. **libfvad wasm build.** Vendoring a compiled binary requires a
+   reproducible build: commit the Emscripten build script and pin the
+   libfvad revision so the binary can be regenerated and audited. Fallback
+   if wasm integration fights the packaging: a pure-TypeScript port of the
+   reference (all fixed-point integer arithmetic, so a port is bit-exact
+   testable), at the cost of more implementation effort.
+5. **WebRTC VAD fixture reference.** Golden per-frame decisions generated
+   with py-webrtcvad (which wraps the same upstream C). Because the
+   algorithm is integer-exact, fixtures assert bit-exact equality, unlike
+   the tolerance-based neural fixtures.
 
 ## Milestones
 
 1. Engine + FireRed provider + tests (port/adapt from fireredvad-web).
 2. Silero provider + parity fixtures.
 3. Session layer (mic, ring buffer, events) + demo page.
-4. TEN-VAD provider (after resolving Risk 1).
-5. Packaging polish (exports map, prepublishOnly, README) + npm publish.
+4. WebRTC VAD provider (libfvad wasm; validates the non-ONNX, binary-output
+   path and completes the FireRedVAD README's comparison set in the demo).
+5. TEN-VAD provider (after resolving Risk 1).
+6. Packaging polish (exports map, prepublishOnly, README) + npm publish.
