@@ -1,0 +1,37 @@
+exclude: '^(tests/assets/|models/|package-lock\.json$)'
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        # Model artifacts are bundled in the package; FireRed is ~3.3 MB.
+        args: ["--maxkb=4096"]
+
+  # Formats JSON, YAML, Markdown, TOML. It deliberately does not match TS.
+  - repo: https://github.com/will-rice/prettier-pre-commit
+    rev: v1.0.9
+    hooks:
+      - id: prettier-format
+
+  - repo: local
+    hooks:
+      - id: prettier-ts
+        name: prettier (typescript)
+        entry: npx prettier --write
+        language: system
+        files: \.(ts|mts|mjs)$
+      - id: eslint
+        name: eslint
+        entry: npx eslint --fix
+        language: system
+        files: \.(ts|mts|mjs)$
+      - id: typecheck
+        name: tsc --noEmit
+        entry: npm run typecheck
+        language: system
+        pass_filenames: false
+        files: \.(ts|mts)$

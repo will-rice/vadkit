@@ -1,0 +1,8 @@
+dist/
+models/
+tests/assets/
+package-lock.json
+
+# Hand-authored specs and plans: table alignment and wrapping are deliberate,
+# and reflowing them churns files other sessions are working from.
+docs/

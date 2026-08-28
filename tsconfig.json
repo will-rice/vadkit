@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
+
+    // NodeNext enforces explicit .js extensions in relative imports, so source
+    // that typechecks is source bare Node can execute. The parity tests run
+    // onnxruntime-web under Node, where extensionless ESM imports throw.
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "moduleDetection": "force",
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+
+    // No enums, namespaces, or parameter properties: the source stays
+    // runnable under Node's native type stripping.
+    "erasableSyntaxOnly": true,
+
+    "strict": true,
+    // An out-of-bounds Float32Array read yields undefined, which becomes NaN
+    // and silently corrupts probabilities. Worth the friction in DSP code.
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    "skipLibCheck": true,
+    // tsdown emits the package; tsc is the typechecker only.
+    "noEmit": true
+  },
+  "include": ["src", "tests", "tsdown.config.ts", "vitest.config.ts"]
+}

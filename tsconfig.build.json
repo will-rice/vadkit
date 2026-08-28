@@ -1,0 +1,11 @@
+{
+  // The published surface only. isolatedDeclarations forces an explicit return
+  // type on every export, which pins the public API and lets tsdown generate
+  // .d.ts via oxc instead of falling back to tsc. Build tooling is exempt.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "isolatedDeclarations": true,
+    "declaration": true
+  },
+  "include": ["src"]
+}
