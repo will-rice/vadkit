@@ -4,6 +4,7 @@ import { createVad, micSource } from "../src/index.ts";
 import type { AudioSource, Utterance, VadFrame } from "../src/index.ts";
 import { fireRedVad } from "../src/providers/fireredvad.ts";
 import { sileroVad } from "../src/providers/silero.ts";
+import { webrtcVad } from "../src/providers/webrtc.ts";
 
 const HISTORY_SEC = 8;
 const THRESHOLD = 0.4;
@@ -142,8 +143,13 @@ const sileroSession = await createVad(sileroVad({ model: sileroModelUrl }), {
   speechThreshold: THRESHOLD,
   ...callbacksFor("Silero VAD (32 ms)"),
 });
+const webrtcSession = await createVad(webrtcVad({ aggressiveness: 3 }), {
+  speechThreshold: THRESHOLD,
+  ...callbacksFor("WebRTC VAD (10 ms, mode 3)"),
+});
 makePanel("FireRedVAD (10 ms)", 0.01);
 makePanel("Silero VAD (32 ms)", 0.032);
+makePanel("WebRTC VAD (10 ms, mode 3)", 0.01);
 
 info.textContent = "Models loaded. Audio never leaves this page.";
 toggle.disabled = false;
@@ -155,15 +161,19 @@ toggle.onclick = (): void => {
       running = false;
       toggle.textContent = "Start microphone";
       await fireRedSession.stop();
-      await sileroSession.stop(); // last tee stop stops the mic
+      await sileroSession.stop();
+      await webrtcSession.stop(); // last tee stop stops the mic
       return;
     }
     toggle.disabled = true;
     try {
-      const [teeA, teeB] = teeSource(micSource(), 2);
-      if (teeA === undefined || teeB === undefined) throw new Error("teeSource returned too few");
+      const [teeA, teeB, teeC] = teeSource(micSource(), 3);
+      if (teeA === undefined || teeB === undefined || teeC === undefined) {
+        throw new Error("teeSource returned too few");
+      }
       await fireRedSession.start(teeA);
-      await sileroSession.start(teeB); // this one actually opens the mic
+      await sileroSession.start(teeB);
+      await webrtcSession.start(teeC); // this one actually opens the mic
       running = true;
       toggle.textContent = "Stop microphone";
     } finally {
@@ -176,5 +186,5 @@ toggle.onclick = (): void => {
 // routed through a MediaStreamDestination wrapped as an AudioSource).
 (window as unknown as Record<string, unknown>).demo = {
   teeSource,
-  sessions: { fireRedSession, sileroSession },
+  sessions: { fireRedSession, sileroSession, webrtcSession },
 };

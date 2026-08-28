@@ -32,6 +32,10 @@
     "./silero": {
       "types": "./dist/providers/silero.d.ts",
       "default": "./dist/providers/silero.js"
+    },
+    "./webrtc": {
+      "types": "./dist/providers/webrtc.d.ts",
+      "default": "./dist/providers/webrtc.js"
     }
   },
   "scripts": {
@@ -69,7 +73,6 @@
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
     "lint-staged": "^17.4.1",
-    "onnxruntime-node": "^1.29.0",
     "onnxruntime-web": "^1.29.0",
     "prettier": "^3.9.6",
     "publint": "^0.3.24",
@@ -86,6 +89,10 @@
     ],
     "*.{json,yaml,yml,md,html,css}": [
       "prettier --write --ignore-unknown"
+    ],
+    "*.py": [
+      "uvx ruff format",
+      "uvx ruff check --fix"
     ]
   }
 }

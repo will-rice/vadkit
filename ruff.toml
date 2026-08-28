@@ -1,0 +1,3 @@
+# Fixture generator scripts (PEP 723, run via uv). Line length matches prettier.
+line-length = 100
+target-version = "py310"

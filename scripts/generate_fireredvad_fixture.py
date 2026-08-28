@@ -35,8 +35,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def main():
-    model_dir = snapshot_download("FireRedTeam/FireRedVAD",
-                                  allow_patterns=["Stream-VAD/*"])
+    model_dir = snapshot_download("FireRedTeam/FireRedVAD", allow_patterns=["Stream-VAD/*"])
     vad = FireRedStreamVad.from_pretrained(os.path.join(model_dir, "Stream-VAD"))
 
     wav = os.path.join(HERE, "..", "tests", "assets", "hello_en.wav")
@@ -46,8 +45,7 @@ def main():
 
     out = os.path.join(HERE, "..", "tests", "fixtures", "fireredvad.json")
     with open(out, "w") as f:
-        json.dump({"wav": "hello_en.wav", "probs": probs}, f,
-                  separators=(",", ":"))
+        json.dump({"wav": "hello_en.wav", "probs": probs}, f, separators=(",", ":"))
         f.write("\n")
     print(f"wrote {out} ({len(probs)} frames)")
 

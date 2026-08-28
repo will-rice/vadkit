@@ -1,8 +1,8 @@
 # vadkit
 
 Multi-provider voice activity detection for the browser. One TypeScript API
-over multiple VAD models — [FireRedVAD](https://github.com/FireRedTeam/FireRedVAD)
-and [Silero VAD](https://github.com/snakers4/silero-vad) today, WebRTC VAD and
+over multiple VAD models — [FireRedVAD](https://github.com/FireRedTeam/FireRedVAD),
+[Silero VAD](https://github.com/snakers4/silero-vad), and WebRTC VAD today,
 TEN-VAD planned — with a batteries-included session layer: microphone capture,
 speech start/end events, and the utterance's raw audio handed to you on speech
 end, ready for ASR.
@@ -55,13 +55,22 @@ Options are denominated in seconds and mean the same thing across providers
 
 ## Providers
 
-| Provider   | Import              | Window/hop | Frame | Model           | License    |
-| ---------- | ------------------- | ---------- | ----- | --------------- | ---------- |
-| FireRedVAD | `vadkit/fireredvad` | 400 / 160  | 10 ms | 3.3 MB (PCM-in) | Apache-2.0 |
-| Silero v5  | `vadkit/silero`     | 512 / 512  | 32 ms | 2.3 MB          | MIT        |
+| Provider   | Import              | Window/hop | Frame  | Model                     | License      |
+| ---------- | ------------------- | ---------- | ------ | ------------------------- | ------------ |
+| FireRedVAD | `vadkit/fireredvad` | 400 / 160  | 10 ms  | 3.3 MB (PCM-in)           | Apache-2.0   |
+| Silero v5  | `vadkit/silero`     | 512 / 512  | 32 ms  | 2.3 MB                    | MIT          |
+| WebRTC VAD | `vadkit/webrtc`     | 160 / 160* | 10 ms* | none (29 KB wasm inlined) | BSD-3-Clause |
 
-Both consume raw 16 kHz PCM; the FireRedVAD model has its fbank+CMVN feature
+All consume raw 16 kHz PCM; the FireRedVAD model has its fbank+CMVN feature
 frontend inside the ONNX graph. Model provenance and hashes: `models/NOTICE`.
+
+\*WebRTC VAD (the classic GMM VAD, via a vendored
+[libfvad](https://github.com/dpirch/libfvad) wasm build — no
+onnxruntime-web needed) supports `frameMs: 10 | 20 | 30` and emits hard 0/1
+decisions; the segmenter's smoothing turns those into a
+fraction-of-window-voiced value, so tune sensitivity primarily with
+`aggressiveness: 0-3`. Its parity fixture is bit-exact against
+py-webrtcvad across all four modes.
 
 Custom backends implement the `VadProvider` interface (window/hop geometry +
 stateful `process(samples) → probabilities`) — see `src/types.ts`.
@@ -82,5 +91,4 @@ npm run build      # tsdown + publint + attw
 npm run fixtures   # regenerate parity fixtures (onnxruntime-node reference)
 ```
 
-Design docs live in `docs/superpowers/specs/`. Roadmap: WebRTC VAD (libfvad
-wasm) and TEN-VAD providers per the spec.
+Design docs live in `docs/superpowers/specs/`. Roadmap: TEN-VAD provider per the spec.

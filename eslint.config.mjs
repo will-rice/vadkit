@@ -5,7 +5,7 @@ import eslintConfigPrettier from "eslint-config-prettier";
 import tseslint from "typescript-eslint";
 
 export default defineConfig([
-  globalIgnores(["dist/**", "coverage/**", "models/**"]),
+  globalIgnores(["dist/**", "coverage/**", "models/**", "src/providers/libfvad/fvad.js"]),
   {
     files: ["**/*.{ts,mts,mjs}"],
     extends: [
