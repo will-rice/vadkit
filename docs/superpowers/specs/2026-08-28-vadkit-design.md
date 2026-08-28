@@ -108,8 +108,8 @@ Provider-agnostic streaming core, generalized from fireredvad-web:
 interface VadOptions {
   speechThreshold: number;   // default 0.5
   smoothWindowSec: number;   // moving average; default 0.05
-  minSpeechSec: number;      // default 0.08
-  minSilenceSec: number;     // default 0.2
+  riseDelaySec: number;      // default 0.08
+  fallDelaySec: number;     // default 0.2
   prePadSec: number;         // audio kept before speech start; default 0.1
   maxSpeechSec: number;      // force-end long utterances; default 30
 }

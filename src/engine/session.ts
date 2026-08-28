@@ -41,7 +41,7 @@ export class VadSession {
     this.callbacks = callbacks;
     const o = stream.options;
     this.ring = new AudioRingBuffer(
-      Math.ceil((o.maxSpeechSec + o.prePadSec + o.minSilenceSec + 1) * SAMPLE_RATE),
+      Math.ceil((o.maxSpeechSec + o.prePadSec + o.fallDelaySec + 1) * SAMPLE_RATE),
     );
   }
 

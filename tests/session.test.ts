@@ -43,8 +43,8 @@ function fakeSource(pcm: Float32Array, sampleRate: number, chunkSize: number): A
 
 const OPTS = {
   smoothWindowSec: 0.01,
-  minSpeechSec: 0.03,
-  minSilenceSec: 0.05,
+  riseDelaySec: 0.03,
+  fallDelaySec: 0.05,
   prePadSec: 0.02,
   speechThreshold: 0.5,
 };

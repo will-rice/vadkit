@@ -29,7 +29,7 @@ import { sileroVad } from "vadkit/silero"; // or: fireRedVad from "vadkit/firere
 
 const vad = await createVad(sileroVad(), {
   speechThreshold: 0.5,
-  minSilenceSec: 0.2,
+  fallDelaySec: 0.2,
   onSpeechStart: (time) => console.log("speech started at", time),
   onSpeechEnd: ({ audio, startTime, endTime }) => {
     // audio: Float32Array of the utterance (16 kHz), including pre-padding
@@ -50,7 +50,7 @@ const frames = await vad.processChunk(pcm); // Float32Array in [-1, 1] at 16 kHz
 ```
 
 Options are denominated in seconds and mean the same thing across providers
-(`speechThreshold`, `smoothWindowSec`, `minSpeechSec`, `minSilenceSec`,
+(`speechThreshold`, `smoothWindowSec`, `riseDelaySec`, `fallDelaySec`,
 `prePadSec`, `maxSpeechSec`).
 
 ## Providers

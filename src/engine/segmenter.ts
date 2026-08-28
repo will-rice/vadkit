@@ -4,9 +4,9 @@ export interface VadOptions {
   /** Trailing moving-average window in seconds. Default 0.05. */
   smoothWindowSec: number;
   /** Voiced run needed to start a segment. Default 0.08. */
-  minSpeechSec: number;
+  riseDelaySec: number;
   /** Silent run needed to end a segment. Default 0.2. */
-  minSilenceSec: number;
+  fallDelaySec: number;
   /** Reported segment start precedes the voiced run by this much. Default 0.1. */
   prePadSec: number;
   /** Segments are force-split at this length. Default 30. */
@@ -16,8 +16,8 @@ export interface VadOptions {
 export const DEFAULT_VAD_OPTIONS: VadOptions = {
   speechThreshold: 0.5,
   smoothWindowSec: 0.05,
-  minSpeechSec: 0.08,
-  minSilenceSec: 0.2,
+  riseDelaySec: 0.08,
+  fallDelaySec: 0.2,
   prePadSec: 0.1,
   maxSpeechSec: 30,
 };
@@ -42,8 +42,8 @@ export class Segmenter {
   private readonly frameSec: number;
   private readonly options: VadOptions;
   private readonly smoothFrames: number;
-  private readonly minSpeechFrames: number;
-  private readonly minSilenceFrames: number;
+  private readonly riseDelayFrames: number;
+  private readonly fallDelayFrames: number;
 
   private index = -1;
   private window: number[] = [];
@@ -59,8 +59,8 @@ export class Segmenter {
     this.frameSec = frameSec;
     const frames = (sec: number): number => Math.max(1, Math.round(sec / frameSec));
     this.smoothFrames = frames(options.smoothWindowSec);
-    this.minSpeechFrames = frames(options.minSpeechSec);
-    this.minSilenceFrames = frames(options.minSilenceSec);
+    this.riseDelayFrames = frames(options.riseDelaySec);
+    this.fallDelayFrames = frames(options.fallDelaySec);
   }
 
   reset(): void {
@@ -91,7 +91,7 @@ export class Segmenter {
       case "possible_speech":
         if (!voiced) {
           this.state = "silence";
-        } else if (this.index - this.voicedRunStart + 1 >= this.minSpeechFrames) {
+        } else if (this.index - this.voicedRunStart + 1 >= this.riseDelayFrames) {
           this.state = "speech";
           this.segmentStartTime = Math.max(
             0,
@@ -110,7 +110,7 @@ export class Segmenter {
       case "possible_silence":
         if (voiced) {
           this.state = "speech";
-        } else if (this.index - this.silenceRunStart + 1 >= this.minSilenceFrames) {
+        } else if (this.index - this.silenceRunStart + 1 >= this.fallDelayFrames) {
           this.state = "silence";
           const endTime = this.silenceRunStart * this.frameSec;
           events.push({ type: "speech_end", time: endTime, startTime: this.segmentStartTime });

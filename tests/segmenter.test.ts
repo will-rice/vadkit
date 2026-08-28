@@ -7,8 +7,8 @@ const OPTS = {
   ...DEFAULT_VAD_OPTIONS,
   speechThreshold: 0.5,
   smoothWindowSec: 0.01, // 1 frame -> smoothing off
-  minSpeechSec: 0.03, // 3 frames
-  minSilenceSec: 0.05, // 5 frames
+  riseDelaySec: 0.03, // 3 frames
+  fallDelaySec: 0.05, // 5 frames
   prePadSec: 0.02, // 2 frames
   maxSpeechSec: 30,
 };
@@ -17,7 +17,7 @@ function feed(seg: Segmenter, probs: number[]): VadFrame[] {
   return probs.map((p) => seg.process(p));
 }
 
-test("emits speech_start after minSpeechSec of voiced frames, pre-padded", () => {
+test("emits speech_start after riseDelaySec of voiced frames, pre-padded", () => {
   const seg = new Segmenter(OPTS, 0.01);
   const frames = feed(seg, [0, 0, 0, 0, 0.9, 0.9, 0.9, 0.9]);
   const starts = frames.flatMap((f) => f.events).filter((e) => e.type === "speech_start");
@@ -28,14 +28,14 @@ test("emits speech_start after minSpeechSec of voiced frames, pre-padded", () =>
   expect(frames[5]?.isSpeech).toBe(false);
 });
 
-test("a blip shorter than minSpeechSec never starts speech", () => {
+test("a blip shorter than riseDelaySec never starts speech", () => {
   const seg = new Segmenter(OPTS, 0.01);
   const frames = feed(seg, [0.9, 0.9, 0, 0, 0, 0, 0, 0]);
   expect(frames.flatMap((f) => f.events)).toHaveLength(0);
   expect(frames.every((f) => !f.isSpeech)).toBe(true);
 });
 
-test("emits speech_end after minSilenceSec, at the first silent frame", () => {
+test("emits speech_end after fallDelaySec, at the first silent frame", () => {
   const seg = new Segmenter(OPTS, 0.01);
   const probs = [0.9, 0.9, 0.9, 0.9, 0, 0, 0, 0, 0, 0];
   const frames = feed(seg, probs);
