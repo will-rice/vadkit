@@ -84,7 +84,7 @@
       "prettier --write",
       "eslint --fix --no-warn-ignored"
     ],
-    "*.{json,yaml,yml,md}": [
+    "*.{json,yaml,yml,md,html,css}": [
       "prettier --write --ignore-unknown"
     ]
   }
