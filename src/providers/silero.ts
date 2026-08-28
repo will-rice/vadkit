@@ -17,7 +17,8 @@ export interface SileroVadOptions {
 /** Silero VAD v5 provider (512-sample windows, 32 ms frames). */
 export function sileroVad(options: SileroVadOptions = {}): ProviderFactory {
   return async (): Promise<VadProvider> => {
-    const model = options.model ?? new URL("../../models/silero_vad.onnx", import.meta.url).toString();
+    const model =
+      options.model ?? new URL("../../models/silero_vad.onnx", import.meta.url).toString();
     const session = await createSession(model, options.sessionOptions);
     return new SileroProvider(session);
   };

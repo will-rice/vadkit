@@ -23,8 +23,7 @@ export const DEFAULT_VAD_OPTIONS: VadOptions = {
 };
 
 export type VadEvent =
-  | { type: "speech_start"; time: number }
-  | { type: "speech_end"; time: number; startTime: number };
+  { type: "speech_start"; time: number } | { type: "speech_end"; time: number; startTime: number };
 
 export interface VadFrame {
   index: number;
@@ -134,7 +133,14 @@ export class Segmenter {
     }
 
     const isSpeech = this.state === "speech" || this.state === "possible_silence";
-    return { index: this.index, time, probability, smoothedProbability: smoothed, isSpeech, events };
+    return {
+      index: this.index,
+      time,
+      probability,
+      smoothedProbability: smoothed,
+      isSpeech,
+      events,
+    };
   }
 
   private smooth(probability: number): number {

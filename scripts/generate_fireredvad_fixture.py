@@ -36,6 +36,7 @@ def main():
     os.makedirs(os.path.dirname(out), exist_ok=True)
     with open(out, "w") as f:
         json.dump({"wav": "hello_en.wav", "probs": probs[0, :, 0].tolist()}, f)
+        f.write("\n")
     print(f"wrote {out} ({probs.shape[1]} frames)")
 
 

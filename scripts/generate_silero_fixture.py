@@ -37,6 +37,7 @@ def main():
     out = os.path.join(HERE, "..", "tests", "fixtures", "silero.json")
     with open(out, "w") as f:
         json.dump({"wav": "hello_en.wav", "windowSamples": 512, "probs": probs}, f)
+        f.write("\n")
     print(f"wrote {out} ({len(probs)} windows)")
 
 

@@ -16,6 +16,7 @@ repos:
     rev: v1.0.9
     hooks:
       - id: prettier-format
+        files: \.(json|ya?ml|md|toml)$
 
   - repo: local
     hooks:

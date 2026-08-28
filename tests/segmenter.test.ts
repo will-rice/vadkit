@@ -39,9 +39,7 @@ test("emits speech_end after minSilenceSec, at the first silent frame", () => {
   const seg = new Segmenter(OPTS, 0.01);
   const probs = [0.9, 0.9, 0.9, 0.9, 0, 0, 0, 0, 0, 0];
   const frames = feed(seg, probs);
-  const ends = frames
-    .flatMap((f) => f.events)
-    .filter((e) => e.type === "speech_end");
+  const ends = frames.flatMap((f) => f.events).filter((e) => e.type === "speech_end");
   expect(ends).toHaveLength(1);
   expect(ends[0]?.time).toBeCloseTo(0.04, 9); // first silent frame t=0.04
   expect(ends[0]?.type === "speech_end" && ends[0].startTime).toBeCloseTo(0, 9); // prePad clamped at 0
