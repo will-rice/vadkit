@@ -1121,7 +1121,15 @@ print('inputs:', [(i.name, [d.dim_param or d.dim_value for d in i.type.tensor_ty
 print('outputs:', [o.name for o in m.graph.output])"
 ```
 
-Expected (verify, do not assume): inputs `input` [batch, samples], `state` [2, batch, 128], `sr` scalar int64; outputs `output` [batch, 1], `stateN` [2, batch, 128]. The v5 model consumes 64 samples of leading context per 512-sample window — the Python wrapper prepends the previous window's last 64 samples, so `input` is fed as [1, 576]. **Confirm against the wrapper source** (`src/silero_vad/utils_vad.py`, class `OnnxWrapper`, `_context` handling, at tag v5.1.2) before implementing; if the interface differs from this description, update provider and fixture code to match the wrapper exactly — the wrapper is the reference, this plan text is not.
+VERIFIED 2026-08-28 against the v5.1.2 model file and `utils_vad.py` source:
+inputs `input` [batch, dynamic] float32, `state` [2, batch, 128] float32,
+`sr` scalar int64; outputs in graph order `output` [batch, 1], `stateN`.
+The wrapper prepends a 64-sample context to each 512-sample window (effective
+input [1, 576]) and updates the context to the last 64 samples of the current
+window (`x[..., -64:]` of the concatenated input equals the window's tail).
+Expected sha256 of the download:
+`2623a2953f6ff3d2c1e61740c6cdb7168133479b267dfef114a4a3cc5bdd788f` — if the
+downloaded file's hash differs, stop and investigate before proceeding.
 
 Append to `models/NOTICE`:
 ```
