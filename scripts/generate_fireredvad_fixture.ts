@@ -1,11 +1,14 @@
 // Golden per-frame probabilities for the FireRedVAD provider.
 //
-// Reference: the fireredvad_stream_vad_e2e.onnx model run with
-// onnxruntime-node (the same native ONNX Runtime core as Python
-// onnxruntime) over the full utterance with zero initial caches. The
-// model's own parity with the FireRedVAD Python pipeline is established in
-// that repo's tests; this fixture pins the TypeScript glue (framing, cache
-// threading) against an independent runtime.
+// Reference: the fireredvad_stream_vad_e2e.onnx model driven with
+// onnxruntime-node over the full utterance with zero initial caches.
+//
+// SCOPE: this pins the TypeScript glue -- framing, cache threading, chunk
+// handling -- against an independent driver of the same ONNX graph. It does
+// NOT verify that graph against FireRedVAD's Python pipeline; doing so needs
+// the fireredvad package plus its cmvn.ark and torch weights, which this
+// repo does not carry. Contrast generate_silero_fixture.py, which does run
+// its reference implementation.
 //
 // Run: npm run fixtures
 

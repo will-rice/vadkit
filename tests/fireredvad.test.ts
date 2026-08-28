@@ -19,7 +19,7 @@ function loadModel(): Uint8Array {
   return readFileSync(path.join(HERE, "..", "models", "fireredvad_stream_vad_e2e.onnx"));
 }
 
-test("matches the Python onnxruntime reference frame by frame", async () => {
+test("matches an independent onnxruntime run of the same graph, frame by frame", async () => {
   const fixture = JSON.parse(
     readFileSync(path.join(HERE, "fixtures", "fireredvad.json"), "utf-8"),
   ) as { wav: string; probs: number[] };
