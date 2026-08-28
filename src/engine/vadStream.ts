@@ -1,27 +1,19 @@
-import type { ProviderFactory, VadProvider } from "../types.js";
+import type { VadProvider } from "../types.js";
 import { ChunkBuffer } from "./chunkBuffer.js";
-import { DEFAULT_VAD_OPTIONS, Segmenter } from "./segmenter.js";
+import { Segmenter } from "./segmenter.js";
 import type { VadFrame, VadOptions } from "./segmenter.js";
 
-export interface VadCallbacks {
-  onFrame?: ((frame: VadFrame) => void) | undefined;
-  onSpeechStart?: ((time: number) => void) | undefined;
-  onSpeechEnd?: ((event: { time: number; startTime: number }) => void) | undefined;
-}
-
-/** Streaming VAD over one provider; all state changes are serialized. */
+/** Streaming VAD engine over one provider; all state changes are serialized. */
 export class VadStream {
   readonly provider: VadProvider;
   readonly options: VadOptions;
-  private readonly callbacks: VadCallbacks;
   private readonly buffer: ChunkBuffer;
   private readonly segmenter: Segmenter;
   private pending: Promise<void> = Promise.resolve();
 
-  constructor(provider: VadProvider, options: VadOptions, callbacks: VadCallbacks) {
+  constructor(provider: VadProvider, options: VadOptions) {
     this.provider = provider;
     this.options = options;
-    this.callbacks = callbacks;
     this.buffer = new ChunkBuffer(provider.windowSamples, provider.hopSamples);
     this.segmenter = new Segmenter(options, provider.frameSec);
   }
@@ -55,28 +47,7 @@ export class VadStream {
     if (run === null) return [];
     const probs = await this.provider.process(run);
     const frames: VadFrame[] = [];
-    for (const p of probs) {
-      const frame = this.segmenter.process(p);
-      frames.push(frame);
-      this.callbacks.onFrame?.(frame);
-      for (const event of frame.events) {
-        if (event.type === "speech_start") this.callbacks.onSpeechStart?.(event.time);
-        else this.callbacks.onSpeechEnd?.({ time: event.time, startTime: event.startTime });
-      }
-    }
+    for (const p of probs) frames.push(this.segmenter.process(p));
     return frames;
   }
-}
-
-export async function createVad(
-  factory: ProviderFactory,
-  options: Partial<VadOptions> & VadCallbacks = {},
-): Promise<VadStream> {
-  const { onFrame, onSpeechStart, onSpeechEnd, ...opts } = options;
-  const provider = await factory();
-  return new VadStream(
-    provider,
-    { ...DEFAULT_VAD_OPTIONS, ...opts },
-    { onFrame, onSpeechStart, onSpeechEnd },
-  );
 }

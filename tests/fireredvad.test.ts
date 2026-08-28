@@ -46,7 +46,7 @@ test("detects the utterance with default options", async () => {
   const vad = await createVad(fireRedVad({ model: loadModel() }), {
     speechThreshold: 0.4,
     onSpeechStart: (t) => starts.push(t),
-    onSpeechEnd: (e) => ends.push(e.time),
+    onSpeechEnd: (u) => ends.push(u.endTime),
   });
   await vad.processChunk(loadPcm());
   // Python pipeline reference for this clip: speech ~0.28-1.83 s.

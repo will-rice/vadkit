@@ -40,7 +40,7 @@ test("frames and events flow from chunks of arbitrary size", async () => {
   const vad = await createVad(() => Promise.resolve(fakeProvider()), {
     ...OPTS,
     onSpeechStart: (t) => starts.push(t),
-    onSpeechEnd: (e) => ends.push(e.time),
+    onSpeechEnd: (u) => ends.push(u.endTime),
   });
   // 0.5 s silence, 0.5 s "speech" (amplitude 0.9), 0.5 s silence, in 313-sample chunks.
   const pcm = new Float32Array(24000);
