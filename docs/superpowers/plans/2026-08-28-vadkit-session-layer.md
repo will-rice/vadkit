@@ -42,7 +42,7 @@ export class AudioRingBuffer {
 }
 ```
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `tests/ringBuffer.test.ts`:
 ```ts
@@ -88,12 +88,12 @@ test("reset restarts absolute indexing", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/ringBuffer.test.ts`
 Expected: FAIL (module not found).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `src/engine/ringBuffer.ts`:
 ```ts
@@ -156,7 +156,7 @@ export class AudioRingBuffer {
 }
 ```
 
-- [ ] **Step 4: Run tests, verify pass, commit**
+- [x] **Step 4: Run tests, verify pass, commit**
 
 Run: `npx vitest run tests/ringBuffer.test.ts` → PASS
 ```bash
@@ -203,7 +203,7 @@ export function createVad(
 ```
 - `VadStream` loses `VadCallbacks` entirely: `constructor(provider, options)`, `processChunk` returns frames, `reset()` unchanged. `createVad` moves out of vadStream.ts.
 
-- [ ] **Step 1: Write the failing session test**
+- [x] **Step 1: Write the failing session test**
 
 `tests/session.test.ts`:
 ```ts
@@ -327,11 +327,11 @@ test("start twice throws", async () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/session.test.ts` → FAIL (exports missing).
 
-- [ ] **Step 3: Purify VadStream**
+- [x] **Step 3: Purify VadStream**
 
 In `src/engine/vadStream.ts`: delete the `VadCallbacks` interface, the `callbacks` field/constructor parameter, the callback dispatch inside `processContiguous` (keep frame collection), and the `createVad` function. Resulting public surface:
 
@@ -357,7 +357,7 @@ export class VadStream {
 }
 ```
 
-- [ ] **Step 4: Implement VadSession and createVad**
+- [x] **Step 4: Implement VadSession and createVad**
 
 `src/engine/session.ts`:
 ```ts
@@ -508,13 +508,13 @@ export type { ProviderFactory, VadProvider } from "./types.js";
 ```
 (The two micSource lines belong to Task 3 — leave them out in this task.)
 
-- [ ] **Step 5: Update existing tests to the new payload**
+- [x] **Step 5: Update existing tests to the new payload**
 
 - `tests/vadStream.test.ts`: `onSpeechEnd: (e) => ends.push(e.time)` → `onSpeechEnd: (u) => ends.push(u.endTime)`. Everything else is unchanged (createVad still exposes `processChunk`, `reset`, and the callbacks).
 - `tests/fireredvad.test.ts`: same one-line change in the second test.
 - `tests/crossProvider.test.ts`: no `onSpeechEnd` used; no change expected — verify.
 
-- [ ] **Step 6: Run the full suite, verify pass, commit**
+- [x] **Step 6: Run the full suite, verify pass, commit**
 
 Run: `npx vitest run` → all PASS (30 tests: 22 from the core plan + 4 ring buffer + 4 session, with the updated vadStream/provider tests green through the session).
 ```bash
@@ -535,7 +535,7 @@ git add -A && git commit -m "feat: add VadSession with utterance audio capture"
 
 No Node test exists for this file (AudioContext/getUserMedia are browser-only); it is exercised by the demo in Task 4. Keep it free of logic beyond wiring — anything testable belongs in VadSession.
 
-- [ ] **Step 1: Implement**
+- [x] **Step 1: Implement**
 
 `src/micSource.ts`:
 ```ts
@@ -612,7 +612,7 @@ export function micSource(options: MicSourceOptions = {}): AudioSource {
 }
 ```
 
-- [ ] **Step 2: Verify typecheck/lint/build and commit**
+- [x] **Step 2: Verify typecheck/lint/build and commit**
 
 Run: `npx vitest run && npm run typecheck && npx eslint . && npm run build`
 Expected: all PASS (attw/publint still clean; micSource is part of the root export).
@@ -631,13 +631,13 @@ git add -A && git commit -m "feat: add microphone AudioSource with inline workle
 **Interfaces:**
 - Consumes: `createVad`, `micSource`, `fireRedVad`, `sileroVad`, `VadFrame`, `Utterance`.
 
-- [ ] **Step 1: Install vite (single package, per the npm bug)**
+- [x] **Step 1: Install vite (single package, per the npm bug)**
 
 ```bash
 npm install --save-dev vite
 ```
 
-- [ ] **Step 2: Write vite config and demo scaffolding**
+- [x] **Step 2: Write vite config and demo scaffolding**
 
 `vite.config.ts`:
 ```ts
@@ -701,7 +701,7 @@ export default defineConfig({
 </html>
 ```
 
-- [ ] **Step 3: Write demo/main.ts**
+- [x] **Step 3: Write demo/main.ts**
 
 ```ts
 import fireRedModelUrl from "../models/fireredvad_stream_vad_e2e.onnx?url";
@@ -881,13 +881,13 @@ toggle.onclick = (): void => {
 };
 ```
 
-- [ ] **Step 4: Wire tsconfig, package script, README**
+- [x] **Step 4: Wire tsconfig, package script, README**
 
 - `tsconfig.json` include: `["src", "tests", "scripts", "demo", "tsdown.config.ts", "vite.config.ts", "vitest.config.ts"]`
 - `package.json` scripts: add `"demo": "vite"`.
 - `README.md`: sections — what vadkit is (one paragraph), install (npm i vadkit onnxruntime-web), quickstart (createVad + micSource + onSpeechEnd example matching the real API), provider table (FireRed/Silero with geometry + model licenses), development (npm test / typecheck / build / fixtures / demo), roadmap note (WebRTC and TEN-VAD per the spec).
 
-- [ ] **Step 5: Verify in the browser**
+- [x] **Step 5: Verify in the browser**
 
 ```bash
 npm run demo
@@ -903,7 +903,7 @@ Then (Claude: via the Browser pane; human: manually) on http://localhost:5173:
    `(endTime - startTime) * 16000`.
 4. With a real mic (human): both meters move, utterance list fills on pauses.
 
-- [ ] **Step 6: Full verification and commit**
+- [x] **Step 6: Full verification and commit**
 
 Run: `npx vitest run && npm run typecheck && npx eslint . && npm run build`
 Expected: all PASS.

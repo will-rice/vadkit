@@ -45,7 +45,8 @@
     "test:watch": "vitest",
     "prepublishOnly": "npm run build",
     "prepare": "husky",
-    "fixtures": "node scripts/generate_fireredvad_fixture.ts && node scripts/generate_silero_fixture.ts"
+    "fixtures": "node scripts/generate_fireredvad_fixture.ts && node scripts/generate_silero_fixture.ts",
+    "demo": "vite"
   },
   "engines": {
     "node": ">=20"
@@ -75,6 +76,7 @@
     "tsdown": "^0.22.14",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.68.0",
+    "vite": "^8.2.2",
     "vitest": "^4.1.11"
   },
   "lint-staged": {

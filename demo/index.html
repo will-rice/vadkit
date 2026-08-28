@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>vadkit demo</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0 auto;
+        max-width: 900px;
+        padding: 2rem 1rem;
+        background: #14161a;
+        color: #e6e6e6;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      h1 {
+        font-size: 1.3rem;
+        font-weight: 600;
+      }
+      button {
+        padding: 0.55rem 1.4rem;
+        border: 0;
+        border-radius: 6px;
+        background: #4f7cff;
+        color: #fff;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+      button:disabled {
+        background: #555;
+        cursor: default;
+      }
+      .provider {
+        margin: 1.2rem 0;
+      }
+      .provider h2 {
+        font-size: 1rem;
+        margin: 0.4rem 0;
+        display: flex;
+        gap: 0.8rem;
+        align-items: center;
+      }
+      .status {
+        padding: 0.15rem 0.7rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        background: #2a2d34;
+        color: #9aa0aa;
+      }
+      .status.speech {
+        background: #1d5c33;
+        color: #b8f5cd;
+      }
+      canvas {
+        width: 100%;
+        height: 90px;
+        background: #0e0f12;
+        border-radius: 8px;
+      }
+      .utterances {
+        font-family: ui-monospace, monospace;
+        font-size: 0.85rem;
+        color: #9aa0aa;
+        min-height: 1.2em;
+      }
+      #info {
+        color: #9aa0aa;
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>vadkit &mdash; providers side by side</h1>
+    <p id="info">Loading models&hellip;</p>
+    <button id="toggle" disabled>Start microphone</button>
+    <div id="panels"></div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

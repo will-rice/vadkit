@@ -33,5 +33,13 @@
     // tsdown emits the package; tsc is the typechecker only.
     "noEmit": true
   },
-  "include": ["src", "tests", "scripts", "tsdown.config.ts", "vitest.config.ts"]
+  "include": [
+    "src",
+    "tests",
+    "scripts",
+    "demo",
+    "tsdown.config.ts",
+    "vite.config.ts",
+    "vitest.config.ts"
+  ]
 }
