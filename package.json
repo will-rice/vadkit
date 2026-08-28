@@ -49,7 +49,7 @@
     "test:watch": "vitest",
     "prepublishOnly": "npm run build",
     "prepare": "husky",
-    "fixtures": "uv run scripts/generate_fireredvad_fixture.py && uv run scripts/generate_silero_fixture.py",
+    "fixtures": "uv run scripts/generate_fireredvad_fixture.py && uv run scripts/generate_silero_fixture.py && uv run scripts/generate_webrtc_fixture.py",
     "demo": "vite"
   },
   "engines": {
