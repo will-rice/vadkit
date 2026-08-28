@@ -25,9 +25,13 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
 
+    // Fixture generator scripts run under Node type stripping and import
+    // local .ts files by their real extension.
+    "allowImportingTsExtensions": true,
+
     "skipLibCheck": true,
     // tsdown emits the package; tsc is the typechecker only.
     "noEmit": true
   },
-  "include": ["src", "tests", "tsdown.config.ts", "vitest.config.ts"]
+  "include": ["src", "tests", "scripts", "tsdown.config.ts", "vitest.config.ts"]
 }
