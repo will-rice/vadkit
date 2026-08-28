@@ -6,5 +6,7 @@ export type { VadEvent, VadFrame, VadOptions } from "./engine/segmenter.js";
 export { createVad, VadSession } from "./engine/session.js";
 export type { AudioSource, Utterance, VadSessionCallbacks } from "./engine/session.js";
 export { VadStream } from "./engine/vadStream.js";
+export { micSource } from "./micSource.js";
+export type { MicSourceOptions } from "./micSource.js";
 export { SAMPLE_RATE } from "./types.js";
 export type { ProviderFactory, VadProvider } from "./types.js";
