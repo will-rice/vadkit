@@ -32,7 +32,7 @@
 **Interfaces:**
 - Produces: `readWav16kMono(buffer: ArrayBuffer): Float32Array` used by every fixture test.
 
-- [ ] **Step 1: Write config files**
+- [x] **Step 1: Write config files**
 
 `package.json`:
 ```json
@@ -100,14 +100,14 @@ dist/
 
 `LICENSE`: MIT text with `Copyright (c) 2026 Will Rice`.
 
-- [ ] **Step 2: Copy the test asset and install**
+- [x] **Step 2: Copy the test asset and install**
 
 ```bash
 cp ~/Documents/projects/FireRedVAD/assets/hello_en.wav tests/assets/hello_en.wav
 npm install --no-audit --no-fund
 ```
 
-- [ ] **Step 3: Write the WAV helper and its failing test**
+- [x] **Step 3: Write the WAV helper and its failing test**
 
 `tests/wav.ts` — same logic as fireredvad-web's helper:
 ```ts
@@ -163,12 +163,12 @@ test("reads hello_en.wav as 16 kHz mono float PCM", () => {
 });
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/wav.test.ts`
 Expected: PASS (helper and test land together; the checked expectation `35840` is the known length of this asset — if it fails, read the actual length from the error and confirm against `soxi`/`ffprobe` before changing the test).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A && git commit -m "Scaffold vadkit package with WAV test helper"
@@ -197,7 +197,7 @@ export type ProviderFactory = () => Promise<VadProvider>;
 ```
 - `ChunkBuffer.push(pcm): Float32Array | null` returns a maximal `window + k*hop` run.
 
-- [ ] **Step 1: Write src/types.ts**
+- [x] **Step 1: Write src/types.ts**
 
 ```ts
 export const SAMPLE_RATE = 16000;
@@ -223,7 +223,7 @@ export interface VadProvider {
 export type ProviderFactory = () => Promise<VadProvider>;
 ```
 
-- [ ] **Step 2: Write the failing ChunkBuffer test**
+- [x] **Step 2: Write the failing ChunkBuffer test**
 
 `tests/chunkBuffer.test.ts`:
 ```ts
@@ -272,12 +272,12 @@ test("reset drops buffered samples", () => {
 });
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 Run: `npx vitest run tests/chunkBuffer.test.ts`
 Expected: FAIL (module not found).
 
-- [ ] **Step 4: Implement ChunkBuffer**
+- [x] **Step 4: Implement ChunkBuffer**
 
 `src/engine/chunkBuffer.ts`:
 ```ts
@@ -312,7 +312,7 @@ export class ChunkBuffer {
 }
 ```
 
-- [ ] **Step 5: Run tests, verify pass, commit**
+- [x] **Step 5: Run tests, verify pass, commit**
 
 Run: `npx vitest run tests/chunkBuffer.test.ts` → PASS
 ```bash
@@ -330,7 +330,7 @@ git add -A && git commit -m "Add provider types and ChunkBuffer"
 **Interfaces:**
 - Produces: `new LinearResampler(fromRate: number)`, `.process(input: Float32Array): Float32Array`, `.reset(): void`. Identity when `fromRate === 16000`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `tests/resampler.test.ts`:
 ```ts
@@ -364,11 +364,11 @@ test("output length converges to input * 16000 / fromRate", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/resampler.test.ts` → FAIL (module not found).
 
-- [ ] **Step 3: Implement (adapted from the fireredvad-web demo, plus reset)**
+- [x] **Step 3: Implement (adapted from the fireredvad-web demo, plus reset)**
 
 `src/engine/resampler.ts`:
 ```ts
@@ -411,7 +411,7 @@ export class LinearResampler {
 }
 ```
 
-- [ ] **Step 4: Run tests, verify pass, commit**
+- [x] **Step 4: Run tests, verify pass, commit**
 
 Run: `npx vitest run tests/resampler.test.ts` → PASS
 ```bash
@@ -448,7 +448,7 @@ export class Segmenter {
 }
 ```
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `tests/segmenter.test.ts` (frameSec 0.01 → frames are 10 ms; config picked so counts are small and exact):
 ```ts
@@ -523,11 +523,11 @@ test("speech_start never precedes the previous speech_end", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/segmenter.test.ts` → FAIL (module not found).
 
-- [ ] **Step 3: Implement Segmenter**
+- [x] **Step 3: Implement Segmenter**
 
 `src/engine/segmenter.ts`:
 ```ts
@@ -679,7 +679,7 @@ export class Segmenter {
 }
 ```
 
-- [ ] **Step 4: Run tests, verify pass, commit**
+- [x] **Step 4: Run tests, verify pass, commit**
 
 Run: `npx vitest run tests/segmenter.test.ts` → PASS
 ```bash
@@ -715,7 +715,7 @@ export function createVad(
 ): Promise<VadStream>;
 ```
 
-- [ ] **Step 1: Write the failing test with a fake provider**
+- [x] **Step 1: Write the failing test with a fake provider**
 
 `tests/vadStream.test.ts`:
 ```ts
@@ -795,11 +795,11 @@ test("reset is ordered behind in-flight calls and restarts frame indexing", asyn
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/vadStream.test.ts` → FAIL (module not found).
 
-- [ ] **Step 3: Implement VadStream and index.ts**
+- [x] **Step 3: Implement VadStream and index.ts**
 
 `src/engine/vadStream.ts`:
 ```ts
@@ -889,7 +889,7 @@ export { createVad, VadStream, type VadCallbacks } from "./engine/vadStream.js";
 export { SAMPLE_RATE, type ProviderFactory, type VadProvider } from "./types.js";
 ```
 
-- [ ] **Step 4: Run all tests and typecheck, verify pass, commit**
+- [x] **Step 4: Run all tests and typecheck, verify pass, commit**
 
 Run: `npx vitest run && npx tsc --noEmit` → PASS
 ```bash
@@ -909,7 +909,7 @@ git add -A && git commit -m "Add VadStream engine and createVad entry point"
 - Consumes: `VadProvider`, `ProviderFactory`, `SAMPLE_RATE` (Task 2), `createVad` (Task 5).
 - Produces: `fireRedVad(options?: { model?: string | Uint8Array; sessionOptions?: ort.InferenceSession.SessionOptions }): ProviderFactory`.
 
-- [ ] **Step 1: Copy the model and write the NOTICE**
+- [x] **Step 1: Copy the model and write the NOTICE**
 
 ```bash
 mkdir -p models
@@ -923,7 +923,7 @@ fireredvad_stream_vad_e2e.onnx
   Single-file export with the fbank+CMVN frontend inside the graph.
 ```
 
-- [ ] **Step 2: Write and run the fixture generator**
+- [x] **Step 2: Write and run the fixture generator**
 
 `scripts/generate_fireredvad_fixture.py`:
 ```python
@@ -967,7 +967,7 @@ print(f"wrote {out} ({probs.shape[1]} frames)")
 Run: `uv run scripts/generate_fireredvad_fixture.py`
 Expected: `wrote .../fireredvad.json (222 frames)`
 
-- [ ] **Step 3: Write the failing provider test**
+- [x] **Step 3: Write the failing provider test**
 
 `tests/fireredvad.test.ts`:
 ```ts
@@ -1023,11 +1023,11 @@ test("detects the utterance with default options", async () => {
 });
 ```
 
-- [ ] **Step 4: Run test to verify it fails**
+- [x] **Step 4: Run test to verify it fails**
 
 Run: `npx vitest run tests/fireredvad.test.ts` → FAIL (module not found).
 
-- [ ] **Step 5: Implement the provider**
+- [x] **Step 5: Implement the provider**
 
 `src/providers/fireredvad.ts`:
 ```ts
@@ -1088,7 +1088,7 @@ function zeroCaches(): ort.Tensor {
 }
 ```
 
-- [ ] **Step 6: Run tests, verify pass, commit**
+- [x] **Step 6: Run tests, verify pass, commit**
 
 Run: `npx vitest run tests/fireredvad.test.ts` → PASS
 ```bash
@@ -1108,7 +1108,7 @@ git add -A && git commit -m "Add FireRedVAD provider with onnxruntime parity fix
 - Consumes: `VadProvider`, `ProviderFactory`, `SAMPLE_RATE` (Task 2), `createVad` (Task 5).
 - Produces: `sileroVad(options?: { model?: string | Uint8Array; sessionOptions?: ort.InferenceSession.SessionOptions }): ProviderFactory`.
 
-- [ ] **Step 1: Download the pinned model and verify its interface**
+- [x] **Step 1: Download the pinned model and verify its interface**
 
 ```bash
 curl -L -o models/silero_vad.onnx \
@@ -1138,7 +1138,7 @@ silero_vad.onnx
   sha256: <recorded hash>
 ```
 
-- [ ] **Step 2: Write and run the fixture generator**
+- [x] **Step 2: Write and run the fixture generator**
 
 `scripts/generate_silero_fixture.py`:
 ```python
@@ -1182,7 +1182,7 @@ print(f"wrote {out} ({len(probs)} windows)")
 Run: `uv run scripts/generate_silero_fixture.py`
 Expected: `wrote .../silero.json (70 windows)` (35840 // 512 = 70).
 
-- [ ] **Step 3: Write the failing provider test**
+- [x] **Step 3: Write the failing provider test**
 
 `tests/silero.test.ts`:
 ```ts
@@ -1216,11 +1216,11 @@ test("matches the silero-vad package frame by frame", async () => {
 });
 ```
 
-- [ ] **Step 4: Run test to verify it fails**
+- [x] **Step 4: Run test to verify it fails**
 
 Run: `npx vitest run tests/silero.test.ts` → FAIL (module not found).
 
-- [ ] **Step 5: Implement the provider (per the verified interface)**
+- [x] **Step 5: Implement the provider (per the verified interface)**
 
 `src/providers/silero.ts` (adjust to Step 1's findings if they differ):
 ```ts
@@ -1292,7 +1292,7 @@ function zeroState(): ort.Tensor {
 }
 ```
 
-- [ ] **Step 6: Run tests, verify pass, commit**
+- [x] **Step 6: Run tests, verify pass, commit**
 
 Run: `npx vitest run tests/silero.test.ts` → PASS. If probabilities disagree beyond tolerance, diff the provider against `OnnxWrapper.__call__` in the pinned silero-vad source (context handling and state threading are the usual culprits) before touching tolerances.
 ```bash
@@ -1310,7 +1310,7 @@ git add -A && git commit -m "Add Silero VAD provider with silero-vad parity fixt
 **Interfaces:**
 - Consumes: `createVad` (Task 5), `fireRedVad` (Task 6), `sileroVad` (Task 7).
 
-- [ ] **Step 1: Write the cross-provider test**
+- [x] **Step 1: Write the cross-provider test**
 
 `tests/crossProvider.test.ts`:
 ```ts
@@ -1347,12 +1347,12 @@ test("both providers agree the utterance is roughly 0.3-1.8 s", async () => {
 });
 ```
 
-- [ ] **Step 2: Run the full suite, typecheck, and build**
+- [x] **Step 2: Run the full suite, typecheck, and build**
 
 Run: `npx vitest run && npx tsc --noEmit && npm run build`
 Expected: all PASS; `dist/` contains `index.js`, `providers/fireredvad.js`, `providers/silero.js`.
 
-- [ ] **Step 3: Verify the built package resolves in bare Node**
+- [x] **Step 3: Verify the built package resolves in bare Node**
 
 ```bash
 node -e "import('./dist/index.js').then(m => console.log('core:', Object.keys(m).length))"
@@ -1360,7 +1360,7 @@ node -e "import('./dist/providers/fireredvad.js').then(m => console.log('firered
 ```
 Expected: both print export lists without resolution errors.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add -A && git commit -m "Add cross-provider invariant test and verify package build"
