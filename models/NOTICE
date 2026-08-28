@@ -1,0 +1,3 @@
+fireredvad_stream_vad_e2e.onnx
+  FireRedVAD (https://github.com/FireRedTeam/FireRedVAD), Apache-2.0.
+  Single-file export with the fbank+CMVN frontend inside the graph.
