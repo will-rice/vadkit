@@ -18,7 +18,8 @@
   "types": "dist/index.d.ts",
   "files": [
     "dist",
-    "models"
+    "models",
+    "THIRD_PARTY_NOTICES"
   ],
   "exports": {
     ".": {
@@ -47,7 +48,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build",
     "prepare": "husky",
     "fixtures": "uv run scripts/generate_fireredvad_fixture.py && uv run scripts/generate_silero_fixture.py && uv run scripts/generate_webrtc_fixture.py",
     "demo": "vite"
@@ -89,5 +90,13 @@
       "uvx ruff format",
       "uvx ruff check --fix"
     ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/will-rice/vadkit.git"
+  },
+  "homepage": "https://github.com/will-rice/vadkit#readme",
+  "bugs": {
+    "url": "https://github.com/will-rice/vadkit/issues"
   }
 }

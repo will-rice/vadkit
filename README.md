@@ -66,7 +66,7 @@ Options are denominated in seconds and mean the same thing across providers
 | WebRTC VAD | `vadkit/webrtc`     | 160 / 160* | 10 ms* | none (29 KB wasm inlined) | BSD-3-Clause |
 
 All consume raw 16 kHz PCM; the FireRedVAD model has its fbank+CMVN feature
-frontend inside the ONNX graph. Model provenance and hashes: `models/NOTICE`.
+frontend inside the ONNX graph. Third-party licenses, model provenance, and hashes: `THIRD_PARTY_NOTICES`.
 
 \*WebRTC VAD (the classic GMM VAD, via a vendored
 [libfvad](https://github.com/dpirch/libfvad) wasm build — no
@@ -85,7 +85,8 @@ The bundled models resolve via `new URL(..., import.meta.url)`, which
 Vite/webpack-5-class bundlers turn into hashed assets automatically — a
 plain install needs no configuration (verified against a packed tarball in
 a fresh Vite app). Without a bundler, or to self-host, pass an explicit
-location: `sileroVad({ model: "https://cdn.jsdelivr.net/npm/vadkit@0.1.0/models/silero_vad.onnx" })`
+location: `sileroVad({ model: "https://cdn.jsdelivr.net/npm/vadkit@<your-installed-version>/models/silero_vad.onnx" })`
+(pin the URL to the version you installed so model and runtime stay matched)
 (or bytes). onnxruntime-web ships its own wasm the same way; its default
 build is large, so size-sensitive apps may want ort's slimmer wasm variants.
 The WebRTC provider is fully self-contained (29 KB, wasm inlined).
@@ -106,6 +107,7 @@ npm run build      # tsdown + publint + attw
 npm run fixtures   # regenerate parity fixtures (onnxruntime-node reference)
 ```
 
-Design docs live in `docs/superpowers/specs/`. (TEN-VAD was evaluated and
-dropped: Agora's license terms are incompatible with vendoring into an MIT
-package — see the spec's Decisions section.)
+Design docs live in [docs/superpowers/specs/](https://github.com/will-rice/vadkit/tree/main/docs/superpowers/specs)
+in the repository. (TEN-VAD was evaluated and dropped: Agora's license terms
+are incompatible with vendoring into an MIT package — see the spec's
+Decisions section.)

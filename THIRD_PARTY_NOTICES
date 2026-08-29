@@ -1,0 +1,60 @@
+Third-party notices for vadkit
+==============================
+
+vadkit itself is MIT licensed (see LICENSE). The published package also
+contains the following third-party components.
+
+---------------------------------------------------------------------------
+libfvad (compiled to WebAssembly inside dist/providers/webrtc.js)
+---------------------------------------------------------------------------
+Source: https://github.com/dpirch/libfvad
+Revision: 532ab666c20d3cfda38bca63abbb0f152706c369
+Build: scripts/build_libfvad.sh (in the source repository)
+License: BSD-3-Clause, reproduced verbatim below.
+
+Copyright (c) 2011, The WebRTC project authors. All rights reserved.
+Copyright (c) 2016 Daniel Pirch
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+  * Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+
+  * Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in
+    the documentation and/or other materials provided with the
+    distribution.
+
+  * Neither the name of Google nor the names of its contributors may
+    be used to endorse or promote products derived from this software
+    without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+---------------------------------------------------------------------------
+models/fireredvad_stream_vad_e2e.onnx
+---------------------------------------------------------------------------
+Source: FireRedVAD (https://github.com/FireRedTeam/FireRedVAD)
+License: Apache-2.0
+Notes: single-file export of the Stream-VAD model with the fbank+CMVN
+  feature frontend inside the graph.
+sha256: 7fdd8b49b1d576373b443666e9176fa362d53813cc18d163b9681925fda4b2da
+
+---------------------------------------------------------------------------
+models/silero_vad.onnx
+---------------------------------------------------------------------------
+Source: Silero VAD v5.1.2 (https://github.com/snakers4/silero-vad)
+License: MIT
+sha256: 2623a2953f6ff3d2c1e61740c6cdb7168133479b267dfef114a4a3cc5bdd788f

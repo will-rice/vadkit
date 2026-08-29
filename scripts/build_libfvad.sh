@@ -38,4 +38,10 @@ emcc \
   -sEXPORTED_RUNTIME_METHODS=HEAP16 \
   -o "$OUT_DIR/fvad.js"
 
+# /*! */ banners survive bundlers and minifiers, keeping the attribution
+# pointer inside the artifact that actually ships the compiled BSD code.
+printf '/*! libfvad (BSD-3-Clause) %s — see THIRD_PARTY_NOTICES. https://github.com/dpirch/libfvad */\n' "$LIBFVAD_SHA" \
+  | cat - "$OUT_DIR/fvad.js" > "$OUT_DIR/fvad.js.tmp"
+mv "$OUT_DIR/fvad.js.tmp" "$OUT_DIR/fvad.js"
+
 echo "built $OUT_DIR/fvad.js from libfvad $LIBFVAD_SHA"

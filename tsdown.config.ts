@@ -12,7 +12,7 @@ export default defineConfig({
   target: "es2022",
   format: ["esm"],
   dts: true,
-  sourcemap: true,
+  sourcemap: false,
   publint: true,
   // ESM-only package (type: module, engines.node >= 20): legacy node10 and
   // require() resolutions are out of scope by design.
