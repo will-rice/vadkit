@@ -78,7 +78,7 @@ test("un-awaited overlapping calls equal sequential results", async () => {
 test("reset is ordered behind in-flight calls and restarts frame indexing", async () => {
   const vad = await createVad(() => Promise.resolve(fakeProvider()), OPTS);
   const first = await vad.processChunk(new Float32Array(1000));
-  vad.reset();
+  await vad.reset();
   const second = await vad.processChunk(new Float32Array(1000));
   expect(second.map((f) => f.index)).toEqual(first.map((f) => f.index));
 });

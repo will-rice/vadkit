@@ -2,6 +2,7 @@ import type { VadProvider } from "../types.js";
 import { ChunkBuffer } from "./chunkBuffer.js";
 import { Segmenter } from "./segmenter.js";
 import type { VadFrame, VadOptions } from "./segmenter.js";
+import { SerialQueue } from "./serialQueue.js";
 
 /** Streaming VAD engine over one provider; all state changes are serialized. */
 export class VadStream {
@@ -9,9 +10,14 @@ export class VadStream {
   readonly options: VadOptions;
   private readonly buffer: ChunkBuffer;
   private readonly segmenter: Segmenter;
-  private pending: Promise<void> = Promise.resolve();
+  private readonly queue = new SerialQueue();
 
   constructor(provider: VadProvider, options: VadOptions) {
+    for (const [key, value] of Object.entries(options)) {
+      if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+        throw new Error(`${key} must be a finite non-negative number`);
+      }
+    }
     this.provider = provider;
     this.options = options;
     this.buffer = new ChunkBuffer(provider.windowSamples, provider.hopSamples);
@@ -25,17 +31,12 @@ export class VadStream {
    * call resolves (e.g. from an AudioWorklet message handler) is safe.
    */
   processChunk(pcm: Float32Array): Promise<VadFrame[]> {
-    const result = this.pending.then(() => this.processContiguous(pcm));
-    this.pending = result.then(
-      () => undefined,
-      () => undefined,
-    );
-    return result;
+    return this.queue.run(() => this.processContiguous(pcm));
   }
 
   /** Start a new stream. Ordered behind in-flight processChunk calls. */
-  reset(): void {
-    this.pending = this.pending.then(() => {
+  reset(): Promise<void> {
+    return this.queue.run(() => {
       this.buffer.reset();
       this.segmenter.reset();
       this.provider.reset();
@@ -47,7 +48,12 @@ export class VadStream {
     if (run === null) return [];
     const probs = await this.provider.process(run);
     const frames: VadFrame[] = [];
-    for (const p of probs) frames.push(this.segmenter.process(p));
+    for (const p of probs) {
+      if (!(p >= 0 && p <= 1)) {
+        throw new Error(`provider returned probability ${String(p)} outside [0, 1]`);
+      }
+      frames.push(this.segmenter.process(p));
+    }
     return frames;
   }
 }

@@ -35,3 +35,17 @@ test("reset clears carried state", () => {
   const second = r.process(Float32Array.from({ length: 99 }, (_, i) => i));
   expect(second).toEqual(first);
 });
+
+test("carries overshoot across batches: no drift at 48 kHz with 2048-sample batches", () => {
+  const r = new LinearResampler(48000);
+  const out: number[] = [];
+  for (let b = 0; b < 8; b++) {
+    out.push(...r.process(Float32Array.from({ length: 2048 }, (_, i) => b * 2048 + i)));
+  }
+  // A pure ramp must resample to a pure ramp: every output exactly 3 apart,
+  // and the last output anchored to its true input position.
+  for (let i = 1; i < out.length; i++) {
+    expect((out[i] ?? NaN) - (out[i - 1] ?? NaN)).toBeCloseTo(3, 6);
+  }
+  expect(out[out.length - 1] ?? NaN).toBeCloseTo(3 * (out.length - 1), 6);
+});

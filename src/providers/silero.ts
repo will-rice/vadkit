@@ -57,7 +57,9 @@ class SileroProvider implements VadProvider {
       }
       this.state = stateN;
       this.context = window.slice(WINDOW - CONTEXT);
-      probs[w] = (output.data as Float32Array)[0] ?? NaN;
+      const value = (output.data as Float32Array)[0];
+      if (value === undefined) throw new Error("model returned an empty output tensor");
+      probs[w] = value;
     }
     return probs;
   }

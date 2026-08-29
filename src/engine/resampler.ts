@@ -27,7 +27,10 @@ export class LinearResampler {
       out.push(a * (1 - frac) + b * frac);
       pos += this.step;
     }
-    const consumed = Math.floor(pos);
+    // pos may point past the end of src; cap the tail cut so the overshoot
+    // carries into position instead of being silently dropped (which would
+    // slip the input origin by a sample per batch and drift all timestamps).
+    const consumed = Math.min(Math.floor(pos), src.length);
     this.tail = src.slice(consumed);
     this.position = pos - consumed;
     return Float32Array.from(out);

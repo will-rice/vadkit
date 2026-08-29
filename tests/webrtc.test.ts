@@ -62,7 +62,7 @@ test("reset restores initial state bit-exactly", async () => {
   const vad = await createVad(webrtcVad({ aggressiveness: 3 }));
   const pcm = loadPcm();
   const first = (await vad.processChunk(pcm)).map((f) => f.probability);
-  vad.reset();
+  await vad.reset();
   const second = (await vad.processChunk(pcm)).map((f) => f.probability);
   expect(second).toEqual(first);
   expect(first).toEqual(expected);

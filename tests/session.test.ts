@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 
 import { createVad } from "../src/index.js";
-import type { AudioSource, Utterance } from "../src/index.js";
+import type { AudioSource, Utterance, VadOptions, VadSessionCallbacks } from "../src/index.js";
 import type { VadProvider } from "../src/types.js";
 
 /** Deterministic fake: probability = mean(|samples|) of each frame's window. */
@@ -115,4 +115,74 @@ test("start twice throws", async () => {
   await expect(vad.start(fakeSource(new Float32Array(1000), 16000, 500))).rejects.toThrow(
     /already started/,
   );
+});
+
+test("a single chunk far larger than the ring still delivers correct utterances", async () => {
+  const utterances: Utterance[] = [];
+  const vad = await createVad(() => Promise.resolve(fakeProvider()), {
+    ...OPTS,
+    onSpeechEnd: (u) => utterances.push(u),
+  });
+  // 40 s in one call, speech at 1.0-1.5 s: the ring (~31 s) evicts that
+  // region long before the call returns unless writes are bounded.
+  const pcm = new Float32Array(40 * 16000);
+  pcm.fill(0.9, 16000, 24000);
+  await vad.processChunk(pcm);
+  expect(utterances).toHaveLength(1);
+  const u = utterances[0];
+  if (u === undefined) return;
+  const startSample = Math.round(u.startTime * 16000);
+  const endSample = Math.round(u.endTime * 16000);
+  expect(u.audio).toEqual(pcm.slice(startSample, endSample));
+});
+
+test("a failed start clears the source so the session can start again", async () => {
+  const vad = await createVad(() => Promise.resolve(fakeProvider()), OPTS);
+  const failing: AudioSource = {
+    start: () => Promise.reject(new Error("denied")),
+    stop: () => Promise.resolve(),
+  };
+  await expect(vad.start(failing)).rejects.toThrow("denied");
+  await vad.start(fakeSource(speechPcm(), 16000, 512)); // must not throw
+  await vad.stop();
+});
+
+test("explicitly-undefined options do not clobber defaults", async () => {
+  const starts: number[] = [];
+  // Simulate a plain-JS caller, for whom exactOptionalPropertyTypes does
+  // not exist and undefined values reach the merge at runtime.
+  const jsCallerOptions = {
+    ...OPTS,
+    speechThreshold: undefined,
+    maxSpeechSec: undefined,
+    onSpeechStart: (t: number) => starts.push(t),
+  } as unknown as Partial<VadOptions> & VadSessionCallbacks;
+  const vad = await createVad(() => Promise.resolve(fakeProvider()), jsCallerOptions);
+  await vad.processChunk(speechPcm());
+  expect(starts).toHaveLength(1); // default threshold 0.5 applies
+});
+
+test("non-finite options are rejected with a concise error", async () => {
+  await expect(
+    createVad(() => Promise.resolve(fakeProvider()), { maxSpeechSec: Infinity }),
+  ).rejects.toThrow(/maxSpeechSec must be a finite/);
+});
+
+test("a provider probability outside [0, 1] rejects instead of poisoning the stream", async () => {
+  const provider = fakeProvider();
+  const broken: VadProvider = {
+    ...provider,
+    process: () => Promise.resolve(Float32Array.from([0.5, NaN, 0.5])),
+  };
+  const vad = await createVad(() => Promise.resolve(broken), OPTS);
+  await expect(vad.processChunk(new Float32Array(1000))).rejects.toThrow(/outside \[0, 1\]/);
+});
+
+test("reset between un-awaited chunks restarts cleanly", async () => {
+  const vad = await createVad(() => Promise.resolve(fakeProvider()), OPTS);
+  const p1 = vad.processChunk(speechPcm());
+  const resetDone = vad.reset();
+  const p2 = vad.processChunk(speechPcm());
+  const [first, , second] = await Promise.all([p1, resetDone, p2]);
+  expect(second.map((f) => f.index)).toEqual(first.map((f) => f.index));
 });
