@@ -1,5 +1,9 @@
 # vadkit
 
+[![npm](https://img.shields.io/npm/v/vadkit)](https://www.npmjs.com/package/vadkit)
+[![CI](https://github.com/will-rice/vadkit/actions/workflows/ci.yml/badge.svg)](https://github.com/will-rice/vadkit/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/vadkit)](https://github.com/will-rice/vadkit/blob/main/LICENSE)
+
 Multi-provider voice activity detection for the browser. One TypeScript API
 over multiple VAD models — [FireRedVAD](https://github.com/FireRedTeam/FireRedVAD),
 [Silero VAD](https://github.com/snakers4/silero-vad), and WebRTC VAD — with
@@ -107,8 +111,20 @@ npm run demo   # FireRed and Silero side by side on one mic feed
 npm test           # engine unit tests + per-provider parity fixtures
 npm run typecheck  # strict tsc, package and demo
 npm run build      # tsdown + publint + attw
-npm run fixtures   # regenerate parity fixtures (onnxruntime-node reference)
+npm run fixtures   # regenerate parity fixtures against reference implementations
 ```
+
+## Releasing
+
+Releases publish to npm from GitHub Actions via
+[npm trusted publishing](https://docs.npmjs.com/trusted-publishers) (OIDC,
+no tokens; provenance attached automatically):
+
+1. Bump `version` in package.json, commit, and push.
+2. Tag it (`git tag vX.Y.Z && git push origin vX.Y.Z`).
+3. Create a GitHub release for the tag — the release workflow verifies the
+   tag matches package.json, then `npm publish` runs the full gate
+   (typecheck, parity suite, build with publint/attw) on the way out.
 
 Design docs live in [docs/superpowers/specs/](https://github.com/will-rice/vadkit/tree/main/docs/superpowers/specs)
 in the repository. (TEN-VAD was evaluated and dropped: Agora's license terms
