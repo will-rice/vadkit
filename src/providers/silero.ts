@@ -2,7 +2,7 @@ import * as ort from "onnxruntime-web";
 
 import { SAMPLE_RATE } from "../types.js";
 import type { ProviderFactory, VadProvider } from "../types.js";
-import { createSession } from "./session.js";
+import { createSession, runInference } from "./session.js";
 
 const WINDOW = 512;
 const CONTEXT = 64;
@@ -45,7 +45,7 @@ class SileroProvider implements VadProvider {
       const input = new Float32Array(CONTEXT + WINDOW);
       input.set(this.context);
       input.set(window, CONTEXT);
-      const outputs = await this.session.run({
+      const outputs = await runInference(this.session, {
         input: new ort.Tensor("float32", input, [1, input.length]),
         state: this.state,
         sr: this.sr,

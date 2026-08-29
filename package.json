@@ -1,6 +1,6 @@
 {
   "name": "vadkit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Multi-provider voice activity detection for the browser",
   "keywords": [
     "vad",
@@ -37,7 +37,8 @@
     "./webrtc": {
       "types": "./dist/providers/webrtc.d.ts",
       "default": "./dist/providers/webrtc.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "scripts": {
     "build": "tsdown",

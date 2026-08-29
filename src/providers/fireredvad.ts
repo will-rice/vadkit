@@ -2,7 +2,7 @@ import * as ort from "onnxruntime-web";
 
 import { SAMPLE_RATE } from "../types.js";
 import type { ProviderFactory, VadProvider } from "../types.js";
-import { createSession } from "./session.js";
+import { createSession, runInference } from "./session.js";
 
 const WINDOW = 400;
 const HOP = 160;
@@ -38,7 +38,7 @@ class FireRedProvider implements VadProvider {
   }
 
   async process(samples: Float32Array): Promise<Float32Array> {
-    const outputs = await this.session.run({
+    const outputs = await runInference(this.session, {
       pcm: new ort.Tensor("float32", samples, [1, samples.length]),
       caches_packed: this.caches,
     });

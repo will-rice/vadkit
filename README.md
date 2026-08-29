@@ -90,6 +90,9 @@ location: `sileroVad({ model: "https://cdn.jsdelivr.net/npm/vadkit@<your-install
 (or bytes). onnxruntime-web ships its own wasm the same way; its default
 build is large, so size-sensitive apps may want ort's slimmer wasm variants.
 The WebRTC provider is fully self-contained (29 KB, wasm inlined).
+ONNX inference is serialized through one shared queue across providers, so
+running multiple ONNX-backed sessions concurrently is safe (ort-web's wasm
+backend is single-threaded and rejects overlapping runs otherwise).
 
 ## Demo
 
