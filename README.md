@@ -102,7 +102,7 @@ backend is single-threaded and rejects overlapping runs otherwise).
 
 ```sh
 npm install
-npm run demo   # FireRed and Silero side by side on one mic feed
+npm run demo   # all three providers side by side on one mic feed
 ```
 
 ## Development
