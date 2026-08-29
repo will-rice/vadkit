@@ -19,7 +19,9 @@ jobs:
           # which ships with Node 24 (Node 22 bundles npm 10).
           node-version: 24
           cache: npm
-          registry-url: https://registry.npmjs.org
+          # No registry-url: it writes an .npmrc _authToken line that makes
+          # npm think credentials are configured and skip the OIDC exchange
+          # trusted publishing depends on.
       - name: Verify tag matches package.json version
         run: |
           version="v$(node -p "require('./package.json').version")"
