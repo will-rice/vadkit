@@ -75,6 +75,17 @@ py-webrtcvad across all four modes.
 Custom backends implement the `VadProvider` interface (window/hop geometry +
 stateful `process(samples) → probabilities`) — see `src/types.ts`.
 
+## Bundling
+
+The bundled models resolve via `new URL(..., import.meta.url)`, which
+Vite/webpack-5-class bundlers turn into hashed assets automatically — a
+plain install needs no configuration (verified against a packed tarball in
+a fresh Vite app). Without a bundler, or to self-host, pass an explicit
+location: `sileroVad({ model: "https://cdn.jsdelivr.net/npm/vadkit@0.1.0/models/silero_vad.onnx" })`
+(or bytes). onnxruntime-web ships its own wasm the same way; its default
+build is large, so size-sensitive apps may want ort's slimmer wasm variants.
+The WebRTC provider is fully self-contained (29 KB, wasm inlined).
+
 ## Demo
 
 ```sh
