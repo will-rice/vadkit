@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
 
 import { DEFAULT_VAD_OPTIONS, Segmenter } from "../src/engine/segmenter.js";
 import type { VadFrame } from "../src/engine/segmenter.js";

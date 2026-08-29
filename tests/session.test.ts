@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
 
 import { createVad } from "../src/index.js";
 import type { AudioSource, Utterance, VadOptions, VadSessionCallbacks } from "../src/index.js";
