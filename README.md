@@ -18,8 +18,12 @@ state.
 npm install vadkit onnxruntime-web
 ```
 
-`onnxruntime-web` is a peer dependency used by the ONNX-backed providers.
-Models ship inside the package under `models/`.
+`onnxruntime-web` is a required peer dependency (npm installs it
+automatically) — the FireRedVAD and Silero models are ONNX. Models ship
+inside the package under `models/`. Apps using only the WebRTC provider
+still bundle ort-free: the subpath entries are isolated, so bundlers
+tree-shake onnxruntime-web out entirely (verified: a webrtc-only consumer
+builds to 38 KB total).
 
 ## Quickstart
 
