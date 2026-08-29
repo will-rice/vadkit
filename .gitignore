@@ -151,3 +151,5 @@ dist/
 # JetBrains (project-level files are managed by .idea/.gitignore)
 .idea/workspace.xml
 .idea/tasks.xml
+.ruff_cache/
+.idea/

@@ -52,7 +52,7 @@
     "prepublishOnly": "npm run typecheck && npm test && npm run build",
     "prepare": "husky",
     "fixtures": "uv run scripts/generate_fireredvad_fixture.py && uv run scripts/generate_silero_fixture.py && uv run scripts/generate_webrtc_fixture.py",
-    "demo": "vite"
+    "demo": "vite demo"
   },
   "engines": {
     "node": ">=20"
@@ -99,5 +99,13 @@
   "homepage": "https://github.com/will-rice/vadkit#readme",
   "bugs": {
     "url": "https://github.com/will-rice/vadkit/issues"
+  },
+  "prettier": {
+    "printWidth": 100
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
   }
 }
