@@ -30,6 +30,10 @@ jobs:
             exit 1
           fi
       - run: npm ci
+      - name: Show OIDC environment (diagnostic)
+        run: |
+          echo "ACTIONS_ID_TOKEN_REQUEST_URL present: ${ACTIONS_ID_TOKEN_REQUEST_URL:+yes}"
+          npm --version
       # prepublishOnly runs typecheck, the parity suite, and the build
       # (with publint + attw) before anything reaches the registry.
-      - run: npm publish
+      - run: npm publish --loglevel http
