@@ -2,8 +2,8 @@
 
 Multi-provider voice activity detection for the browser. One TypeScript API
 over multiple VAD models — [FireRedVAD](https://github.com/FireRedTeam/FireRedVAD),
-[Silero VAD](https://github.com/snakers4/silero-vad), and WebRTC VAD today,
-TEN-VAD planned — with a batteries-included session layer: microphone capture,
+[Silero VAD](https://github.com/snakers4/silero-vad), and WebRTC VAD — with
+a batteries-included session layer: microphone capture,
 speech start/end events, and the utterance's raw audio handed to you on speech
 end, ready for ASR.
 
@@ -91,4 +91,6 @@ npm run build      # tsdown + publint + attw
 npm run fixtures   # regenerate parity fixtures (onnxruntime-node reference)
 ```
 
-Design docs live in `docs/superpowers/specs/`. Roadmap: TEN-VAD provider per the spec.
+Design docs live in `docs/superpowers/specs/`. (TEN-VAD was evaluated and
+dropped: Agora's license terms are incompatible with vendoring into an MIT
+package — see the spec's Decisions section.)

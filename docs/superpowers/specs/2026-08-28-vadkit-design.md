@@ -6,7 +6,8 @@ Status: draft, awaiting review
 ## Goals
 
 - One TypeScript package that runs multiple VAD backends behind a single
-  interface: FireRedVAD, Silero VAD, TEN-VAD, and WebRTC VAD in v1.
+  interface: FireRedVAD, Silero VAD, and WebRTC VAD in v1. (TEN-VAD was
+  planned and later dropped — see Decisions.)
 - Batteries-included session layer: microphone capture, resampling, speech
   start/end events, and the utterance's raw audio delivered on speech end
   (ready for ASR handoff).
@@ -186,6 +187,20 @@ vadkit
 - **Cross-provider invariants**: all providers produce sensible segments on
   the same speech clip (start/end within a tolerance band), guarding against
   geometry/unit mistakes that per-provider tests can miss.
+
+## Decisions
+
+- **TEN-VAD dropped (2026-08-28, Will's call).** Investigation confirmed
+  Risk 1 — the published ONNX takes precomputed features (C++ stft/pitch/
+  biquad frontend), with an official Web wasm as the viable wrapper — but
+  the license is Apache-2.0 with Agora's added conditions: no deployment
+  that "allows others to compete with Agora's offerings, including enabling
+  any third party to develop or deploy Applications", Deploy limited to
+  one's own application and direct end users, and derivative works bound to
+  the same terms. Vendoring the artifacts into an MIT redistributable
+  library conflicts with those clauses, and a bring-your-own-artifacts
+  wrapper was declined as not worth the asymmetry. Revisit if Agora
+  relicenses.
 
 ## Risks and open items
 
