@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
 import { expect, test } from "vitest";
+
 import { readWav16kMono } from "./wav.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));

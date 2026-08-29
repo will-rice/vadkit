@@ -23,7 +23,8 @@ export const DEFAULT_VAD_OPTIONS: VadOptions = {
 };
 
 export type VadEvent =
-  { type: "speech_start"; time: number } | { type: "speech_end"; time: number; startTime: number };
+  | { type: "speech_start"; time: number }
+  | { type: "speech_end"; time: number; startTime: number };
 
 export interface VadFrame {
   index: number;

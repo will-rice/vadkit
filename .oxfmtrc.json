@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 100,
+  "sortPackageJson": false,
+  "ignorePatterns": [
+    "dist/",
+    "models/",
+    "tests/assets/",
+    "package-lock.json",
+    "docs/",
+    "tests/fixtures/",
+    "src/providers/libfvad/fvad.js"
+  ],
+  "sortImports": true
+}
