@@ -107,12 +107,49 @@ npm run demo   # all three providers side by side on one mic feed
 
 ## Development
 
+vadkit uses [Vite+](https://voidzero.dev/posts/announcing-vite-plus-beta) as
+its toolchain: the single `vite-plus` dev dependency provides Vitest, Oxfmt,
+Oxlint, tsdown, and Vite behind the `vp` command, and one `vite.config.ts`
+configures the dev server, tests, and library packaging.
+
+### Setup
+
+- **Node >= 24** (see `.nvmrc`; `nvm use` if you use nvm). Runtime support
+  floor for consumers is Node >= 22.
+- **npm >= 11.5** — enforced via `devEngines`; a newer npm downloads
+  automatically on install if yours is older.
+- `npm install` brings in the whole toolchain and installs the git hooks
+  (pre-commit: format, lint, typecheck on staged files; commit-msg:
+  conventional commits via commitlint). No global installs needed.
+
+### Everyday commands
+
 ```sh
-npm test           # engine unit tests + per-provider parity fixtures
-npm run typecheck  # strict tsc, package and demo
-npm run build      # tsdown + publint + attw
-npm run fixtures   # regenerate parity fixtures against reference implementations
+npm test           # vp test: engine unit tests + per-provider parity fixtures
+npm run typecheck  # strict tsc, package and demo configs
+npm run lint       # eslint (type-aware, strictTypeChecked)
+npm run format     # vp fmt (oxfmt; config in .oxfmtrc.json)
+npm run build      # vp pack (tsdown) + publint + attw packaging checks
+npm run demo       # vp dev demo
 ```
+
+The npm scripts are thin wrappers over `vp` — `npx vp test`, `npx vp fmt`,
+`npx vp pack` work directly too (pass `-c .oxfmtrc.json` to bare `vp fmt`).
+ESLint intentionally remains the lint gate: `vp lint --type-aware`
+(tsgolint) covers part of the same ground and will take over once its rule
+coverage matches typescript-eslint's strictTypeChecked.
+
+### Regenerating artifacts
+
+```sh
+npm run fixtures   # parity fixtures, regenerated against reference
+                   # implementations (needs uv: https://docs.astral.sh/uv/)
+./scripts/build_libfvad.sh   # rebuild the vendored libfvad wasm
+                             # (needs emscripten + git; pinned revision)
+```
+
+Fixtures and the wasm module are committed, so neither tool is needed for
+normal development — only when changing what they generate.
 
 ## Releasing
 
