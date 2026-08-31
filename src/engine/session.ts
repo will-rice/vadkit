@@ -1,6 +1,5 @@
 import { SAMPLE_RATE } from "../types.js";
 import type { ProviderFactory } from "../types.js";
-import { LinearResampler } from "./resampler.js";
 import { AudioRingBuffer } from "./ringBuffer.js";
 import { DEFAULT_VAD_OPTIONS } from "./segmenter.js";
 import type { VadFrame, VadOptions } from "./segmenter.js";
@@ -41,7 +40,6 @@ export class VadSession {
   private readonly callbacks: VadSessionCallbacks;
   private readonly ring: AudioRingBuffer;
   private readonly queue = new SerialQueue();
-  private resampler: LinearResampler | null = null;
   private source: AudioSource | null = null;
 
   constructor(stream: VadStream, callbacks: VadSessionCallbacks) {
@@ -61,14 +59,25 @@ export class VadSession {
     return this.queue.run(() => this.processContiguous(pcm));
   }
 
-  /** Capture from a source until stop(); chunks are resampled if needed. */
+  /**
+   * Capture from a source until stop(). Sources must deliver 16 kHz audio
+   * (micSource gets that natively from its AudioContext); other rates are
+   * reported to onError rather than silently degraded.
+   */
   async start(source: AudioSource): Promise<void> {
     if (this.source !== null) throw new Error("session already started");
     this.source = source;
     try {
       await source.start((pcm, sampleRate) => {
-        const chunk = sampleRate === SAMPLE_RATE ? pcm : this.resample(pcm, sampleRate);
-        const result = this.processChunk(chunk);
+        const result = this.queue.run(() => {
+          if (sampleRate !== SAMPLE_RATE) {
+            throw new Error(
+              `source delivered ${String(sampleRate)} Hz audio; vadkit consumes 16 kHz — ` +
+                "resample upstream (resampleTo16k covers complete buffers)",
+            );
+          }
+          return this.processContiguous(pcm);
+        });
         const onError = this.callbacks.onError;
         if (onError) {
           result.catch(onError);
@@ -115,7 +124,6 @@ export class VadSession {
     return this.queue.run(async () => {
       await this.stream.reset();
       this.ring.reset();
-      this.resampler = null;
     });
   }
 
@@ -153,11 +161,6 @@ export class VadSession {
     };
     this.callbacks.onSpeechEnd?.(utterance);
     return utterance;
-  }
-
-  private resample(pcm: Float32Array, sampleRate: number): Float32Array {
-    this.resampler ??= new LinearResampler(sampleRate);
-    return this.resampler.process(pcm);
   }
 }
 

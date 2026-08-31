@@ -95,21 +95,19 @@ test("start(source) drives the session and stop() ends it", async () => {
   expect(utterances).toHaveLength(1);
 });
 
-test("a 32 kHz source is resampled and yields the same events", async () => {
-  const starts: number[] = [];
+test("a non-16 kHz source reports a concise error instead of degrading", async () => {
+  const errors: unknown[] = [];
+  const frames: number[] = [];
   const vad = await createVad(() => Promise.resolve(fakeProvider()), {
     ...OPTS,
-    onSpeechStart: (t) => starts.push(t),
+    onFrame: (f) => frames.push(f.index),
+    onError: (e) => errors.push(e),
   });
-  // Same signal at 32 kHz: every sample doubled in time.
-  const pcm32 = new Float32Array(48000);
-  pcm32.fill(0.9, 16000, 32000);
-  await vad.start(fakeSource(pcm32, 32000, 1024));
-  await vad.processChunk(new Float32Array(0));
-  expect(starts).toHaveLength(1);
-  const start = starts[0] ?? NaN;
-  expect(start).toBeGreaterThanOrEqual(0.4);
-  expect(start).toBeLessThanOrEqual(0.6);
+  await vad.start(fakeSource(new Float32Array(48000), 32000, 1024));
+  await vad.processChunk(new Float32Array(0)); // barrier: drain the serialized queue
+  expect(errors.length).toBeGreaterThanOrEqual(1);
+  expect(String(errors[0])).toMatch(/32000 Hz .* 16 kHz/);
+  expect(frames).toHaveLength(0); // nothing was processed at the wrong rate
 });
 
 test("start twice throws", async () => {

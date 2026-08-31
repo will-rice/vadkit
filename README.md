@@ -45,7 +45,7 @@ const vad = await createVad(sileroVad(), {
   },
 });
 
-await vad.start(micSource()); // resamples (anti-aliased) if the browser ignores 16 kHz
+await vad.start(micSource()); // the browser's AudioContext captures at 16 kHz natively
 // ... later:
 await vad.stop(); // flushes: an utterance still in progress is delivered
 await vad.dispose(); // releases the model/wasm resources when done for good
@@ -65,6 +65,14 @@ const last = await vad.flush(); // end of stream: closes an open utterance
 That is the whole offline story too: chunk a file through `processChunk`,
 then `flush()` — it delivers a still-open final utterance to `onSpeechEnd`
 and returns it.
+
+All input is 16 kHz; there is deliberately no resampler in vadkit.
+Sample-rate conversion is the platform's job: `micSource` captures through
+a 16 kHz `AudioContext` (every evergreen browser honors the rate and
+converts natively), decoded files go through `resampleTo16k(pcm, fromRate)`
+(a thin `OfflineAudioContext` wrapper), and a source that still delivers
+another rate raises a concise error via `onError` rather than degrading
+silently.
 
 Options are denominated in seconds and mean the same thing across providers
 (`speechThreshold`, `smoothWindowSec`, `riseDelaySec`, `fallDelaySec`,

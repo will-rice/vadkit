@@ -1,5 +1,4 @@
 export { ChunkBuffer } from "./engine/chunkBuffer.js";
-export { LinearResampler } from "./engine/resampler.js";
 export { AudioRingBuffer } from "./engine/ringBuffer.js";
 export { DEFAULT_VAD_OPTIONS, Segmenter } from "./engine/segmenter.js";
 export type { VadEvent, VadFrame, VadOptions } from "./engine/segmenter.js";
@@ -7,6 +6,7 @@ export { createVad, VadSession } from "./engine/session.js";
 export type { AudioSource, Utterance, VadSessionCallbacks } from "./engine/session.js";
 export { VadStream } from "./engine/vadStream.js";
 export { micSource } from "./micSource.js";
+export { resampleTo16k } from "./resample.js";
 export { encodeWav } from "./wav.js";
 export type { MicSourceOptions } from "./micSource.js";
 export { SAMPLE_RATE } from "./types.js";
