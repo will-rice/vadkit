@@ -1,37 +1,29 @@
 name: Release
 
-# release-please turns conventional commits on main into a running release
-# PR (version bump + CHANGELOG). Merging that PR creates the tag and GitHub
-# release and publishes to npm — all in this workflow, because releases
-# created with the workflow's own token do not trigger other workflows.
+# semantic-release analyzes conventional commits on every push to main:
+# when they warrant a release it computes the version, updates CHANGELOG.md
+# and package.json (committed back with [skip ci]), tags, creates the
+# GitHub release, and publishes to npm — all in one run. Config in
+# .releaserc.json; pre-1.0, breaking changes bump the minor version.
 on:
   push:
     branches: [main]
 
-jobs:
-  release-please:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write # tags + releases
-      pull-requests: write # the release PR
-    outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
-    steps:
-      - uses: googleapis/release-please-action@v4
-        id: release
+permissions:
+  contents: read
 
-  publish:
-    needs: release-please
-    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+jobs:
+  release:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write # tags, the GitHub release, and the release commit
+      issues: write # comment on released issues
+      pull-requests: write # comment on released PRs
       id-token: write # npm trusted publishing (OIDC) + provenance
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.release-please.outputs.tag_name }}
+          fetch-depth: 0 # semantic-release reads the full history and tags
       - uses: actions/setup-node@v7
         with:
           # Trusted publishing needs npm >= 11.5, which ships with Node 24.
@@ -39,8 +31,10 @@ jobs:
           cache: npm
           # No registry-url: it writes an .npmrc _authToken line that makes
           # npm think credentials are configured and skip the OIDC exchange
-          # trusted publishing depends on.
+          # trusted publishing depends on (no NPM_TOKEN is set anywhere).
       - run: npm ci
       # prepublishOnly runs typecheck, the parity suite, and the build
       # (with publint + attw) before anything reaches the registry.
-      - run: npm publish
+      - run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

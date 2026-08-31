@@ -170,12 +170,16 @@ normal development — only when changing what they generate.
 ## Releasing
 
 Releases are automated with
-[release-please](https://github.com/googleapis/release-please): conventional
-commits on `main` accumulate into a release PR carrying the version bump
-and CHANGELOG. Merging that PR tags the release and publishes to npm via
+[semantic-release](https://github.com/semantic-release/semantic-release):
+each push to `main` whose conventional commits warrant a release computes
+the version, updates CHANGELOG.md and package.json, tags, creates the
+GitHub release, and publishes to npm via
 [trusted publishing](https://docs.npmjs.com/trusted-publishers) (OIDC, no
 tokens; provenance attached automatically); `npm publish` runs the full
 gate (typecheck, parity suite, build with publint/attw) on the way out.
+Pre-1.0, breaking changes bump the minor version (a `releaseRules`
+override in `.releaserc.json`); delete that override to release 1.0.0 on
+the next breaking change.
 
 Design docs live in [docs/superpowers/specs/](https://github.com/will-rice/vadkit/tree/main/docs/superpowers/specs)
 in the repository. (TEN-VAD was evaluated and dropped: Agora's license terms
