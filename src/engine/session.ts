@@ -21,6 +21,8 @@ export interface AudioSource {
 
 export interface Utterance {
   audio: Float32Array;
+  /** Sample rate of `audio`; always 16000. */
+  sampleRate: number;
   startTime: number;
   endTime: number;
 }
@@ -80,9 +82,32 @@ export class VadSession {
     }
   }
 
+  /** Stop capture, then flush so a still-open utterance is delivered. */
   async stop(): Promise<void> {
     await this.source?.stop();
     this.source = null;
+    await this.flush();
+  }
+
+  /**
+   * End any open utterance now, as if the stream ended: it is delivered to
+   * onSpeechEnd and returned (null if no utterance was open). Ordered
+   * behind in-flight processing.
+   */
+  flush(): Promise<Utterance | null> {
+    return this.queue.run(async () => {
+      let utterance: Utterance | null = null;
+      for (const event of await this.stream.flush()) {
+        if (event.type === "speech_end") utterance = this.emitSpeechEnd(event);
+      }
+      return utterance;
+    });
+  }
+
+  /** Stop and flush, then release the provider. Unusable afterwards. */
+  async dispose(): Promise<void> {
+    await this.stop();
+    await this.stream.dispose();
   }
 
   /** Start a new utterance stream. Ordered behind in-flight processing. */
@@ -108,19 +133,26 @@ export class VadSession {
           if (event.type === "speech_start") {
             this.callbacks.onSpeechStart?.(event.time);
           } else {
-            this.callbacks.onSpeechEnd?.({
-              audio: this.ring.slice(
-                Math.round(event.startTime * SAMPLE_RATE),
-                Math.round(event.time * SAMPLE_RATE),
-              ),
-              startTime: event.startTime,
-              endTime: event.time,
-            });
+            this.emitSpeechEnd(event);
           }
         }
       }
     }
     return frames;
+  }
+
+  private emitSpeechEnd(event: { time: number; startTime: number }): Utterance {
+    const utterance: Utterance = {
+      audio: this.ring.slice(
+        Math.round(event.startTime * SAMPLE_RATE),
+        Math.round(event.time * SAMPLE_RATE),
+      ),
+      sampleRate: SAMPLE_RATE,
+      startTime: event.startTime,
+      endTime: event.time,
+    };
+    this.callbacks.onSpeechEnd?.(utterance);
+    return utterance;
   }
 
   private resample(pcm: Float32Array, sampleRate: number): Float32Array {

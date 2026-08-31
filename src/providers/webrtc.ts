@@ -73,6 +73,12 @@ class WebrtcProvider implements VadProvider {
     this.configure();
   }
 
+  dispose(): Promise<void> {
+    this.module._free(this.frameBuffer);
+    this.module._fvad_free(this.instance);
+    return Promise.resolve();
+  }
+
   private configure(): void {
     if (this.module._fvad_set_sample_rate(this.instance, SAMPLE_RATE) !== 0) {
       throw new Error("fvad_set_sample_rate failed");

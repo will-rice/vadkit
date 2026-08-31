@@ -16,6 +16,8 @@ export interface VadProvider {
   process(samples: Float32Array): Promise<Float32Array>;
   /** Clear recurrent state for a new stream. */
   reset(): void;
+  /** Release model/runtime resources. The provider is unusable afterwards. */
+  dispose(): Promise<void>;
 }
 
 export type ProviderFactory = () => Promise<VadProvider>;

@@ -71,3 +71,37 @@ test("speech_start never precedes the previous speech_end", () => {
   expect(secondStart).toBeDefined();
   expect(secondStart?.time ?? NaN).toBeGreaterThanOrEqual(end?.time ?? NaN);
 });
+
+test("flush ends an open segment at the last frame boundary", () => {
+  const seg = new Segmenter(OPTS, 0.01);
+  feed(seg, [0.9, 0.9, 0.9, 0.9, 0.9]); // in speech, last frame index 4
+  const events = seg.flush();
+  expect(events).toHaveLength(1);
+  expect(events[0]?.type).toBe("speech_end");
+  expect(events[0]?.time).toBeCloseTo(0.05, 9);
+  expect(events[0]?.type === "speech_end" && events[0].startTime).toBeCloseTo(0, 9);
+});
+
+test("flush during possible_silence ends where the silence began", () => {
+  const seg = new Segmenter(OPTS, 0.01);
+  feed(seg, [0.9, 0.9, 0.9, 0.9, 0, 0]); // silence run starts at index 4
+  const events = seg.flush();
+  expect(events).toHaveLength(1);
+  expect(events[0]?.time).toBeCloseTo(0.04, 9);
+});
+
+test("flush with no open segment emits nothing", () => {
+  const seg = new Segmenter(OPTS, 0.01);
+  feed(seg, [0, 0, 0.9, 0.9]); // possible_speech: rise delay not met
+  expect(seg.flush()).toHaveLength(0);
+});
+
+test("after flush, a new segment needs a fresh rise delay and never overlaps the flushed one", () => {
+  const seg = new Segmenter(OPTS, 0.01);
+  feed(seg, [0.9, 0.9, 0.9, 0.9, 0.9]);
+  const flushEnd = seg.flush()[0]?.time ?? NaN;
+  const events = feed(seg, [0.9, 0.9, 0.9, 0.9]).flatMap((f) => f.events);
+  const start = events.find((e) => e.type === "speech_start");
+  expect(start).toBeDefined();
+  expect(start?.time ?? NaN).toBeGreaterThanOrEqual(flushEnd);
+});

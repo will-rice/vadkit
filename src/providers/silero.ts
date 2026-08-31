@@ -68,6 +68,10 @@ class SileroProvider implements VadProvider {
     this.state = zeroState();
     this.context = new Float32Array(CONTEXT);
   }
+
+  dispose(): Promise<void> {
+    return this.session.release();
+  }
 }
 
 function zeroState(): ort.Tensor {

@@ -23,6 +23,9 @@ function fakeProvider(windowSamples = 400, hopSamples = 160): VadProvider {
     reset(): void {
       // stateless
     },
+    dispose(): Promise<void> {
+      return Promise.resolve();
+    },
   };
 }
 
