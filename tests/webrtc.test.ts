@@ -4,8 +4,9 @@ import { fileURLToPath } from "node:url";
 
 import { expect, test } from "vite-plus/test";
 
-import { createVad } from "../src/index.ts";
-import { webrtcVad } from "../src/providers/webrtc.ts";
+import { createVad } from "#index.ts";
+import { webrtcVad } from "#providers/webrtc.ts";
+
 import { readWav16kMono } from "./wav.ts";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));

@@ -1,10 +1,11 @@
+import { createVad, micSource } from "#index.ts";
+import type { AudioSource, Utterance, VadFrame } from "#index.ts";
+import { fireRedVad } from "#providers/fireredvad.ts";
+import { sileroVad } from "#providers/silero.ts";
+import { webrtcVad } from "#providers/webrtc.ts";
+
 import fireRedModelUrl from "../models/fireredvad_stream_vad_e2e.onnx?url";
 import sileroModelUrl from "../models/silero_vad.onnx?url";
-import { createVad, micSource } from "../src/index.ts";
-import type { AudioSource, Utterance, VadFrame } from "../src/index.ts";
-import { fireRedVad } from "../src/providers/fireredvad.ts";
-import { sileroVad } from "../src/providers/silero.ts";
-import { webrtcVad } from "../src/providers/webrtc.ts";
 
 const HISTORY_SEC = 8;
 const THRESHOLD = 0.4;

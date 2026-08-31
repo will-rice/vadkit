@@ -1,8 +1,8 @@
 import * as ort from "onnxruntime-web";
 
-import { SAMPLE_RATE } from "../types.ts";
-import type { ProviderFactory, VadProvider } from "../types.ts";
-import { createSession, runInference } from "./session.ts";
+import { createSession, runInference } from "#providers/session.ts";
+import { SAMPLE_RATE } from "#types.ts";
+import type { ProviderFactory, VadProvider } from "#types.ts";
 
 const WINDOW = 512;
 const CONTEXT = 64;

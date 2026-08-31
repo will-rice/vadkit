@@ -21,6 +21,9 @@
     "models",
     "THIRD_PARTY_NOTICES"
   ],
+  "imports": {
+    "#*": "./src/*"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

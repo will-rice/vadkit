@@ -1,7 +1,7 @@
 import { expect, test } from "vite-plus/test";
 
-import { createVad } from "../src/index.ts";
-import type { VadProvider } from "../src/types.ts";
+import { createVad } from "#index.ts";
+import type { VadProvider } from "#types.ts";
 
 /** Deterministic fake: probability = mean(|samples|) of each frame's window. */
 function fakeProvider(windowSamples = 400, hopSamples = 160): VadProvider {

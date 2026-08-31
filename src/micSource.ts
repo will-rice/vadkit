@@ -1,5 +1,5 @@
-import type { AudioSource } from "./engine/session.ts";
-import { SAMPLE_RATE } from "./types.ts";
+import type { AudioSource } from "#engine/session.ts";
+import { SAMPLE_RATE } from "#types.ts";
 
 // Inlined as a blob URL so consumers' bundlers need no worklet asset config.
 const WORKLET_CODE = `
