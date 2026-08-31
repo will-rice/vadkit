@@ -144,6 +144,29 @@ export class Segmenter {
     };
   }
 
+  /**
+   * End any open segment as if the stream ended now. A confirmed segment
+   * emits speech_end at the last frame boundary (or where its trailing
+   * silence began); an unconfirmed voiced run is discarded. State returns
+   * to silence, so subsequent frames start a fresh rise-delay run.
+   */
+  flush(): VadEvent[] {
+    const events: VadEvent[] = [];
+    if (this.state === "speech" || this.state === "possible_silence") {
+      const endTime =
+        this.state === "possible_silence"
+          ? this.silenceRunStart * this.frameSec
+          : (this.index + 1) * this.frameSec;
+      events.push({ type: "speech_end", time: endTime, startTime: this.segmentStartTime });
+      this.lastEndTime = endTime;
+      this.segmentStartTime = -1;
+    }
+    this.state = "silence";
+    this.voicedRunStart = -1;
+    this.silenceRunStart = -1;
+    return events;
+  }
+
   private smooth(probability: number): number {
     if (this.smoothFrames <= 1) return probability;
     this.window.push(probability);

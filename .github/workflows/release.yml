@@ -1,35 +1,41 @@
 name: Release
 
+# semantic-release analyzes conventional commits on every push to main:
+# when they warrant a release it computes the version, updates CHANGELOG.md
+# and package.json (committed back with [skip ci]), tags, creates the
+# GitHub release, and publishes to npm — all in one run. Config in
+# .releaserc.json; pre-1.0, breaking changes bump the minor version.
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
 
 permissions:
   contents: read
-  id-token: write # npm trusted publishing (OIDC) + provenance
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # tags, the GitHub release, and the release commit
+      issues: write # comment on released issues
+      pull-requests: write # comment on released PRs
+      id-token: write # npm trusted publishing (OIDC) + provenance
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # semantic-release reads the full history and tags
       - uses: actions/setup-node@v7
         with:
-          # Node 24, not .nvmrc's 22: trusted publishing needs npm >= 11.5,
-          # which ships with Node 24 (Node 22 bundles npm 10).
-          node-version: 24
+          # Latest Node; anything >= 24 bundles the npm >= 11.5 that
+          # trusted publishing needs.
+          node-version: latest
           cache: npm
           # No registry-url: it writes an .npmrc _authToken line that makes
           # npm think credentials are configured and skip the OIDC exchange
-          # trusted publishing depends on.
-      - name: Verify tag matches package.json version
-        run: |
-          version="v$(node -p "require('./package.json').version")"
-          if [ "$version" != "$GITHUB_REF_NAME" ]; then
-            echo "package.json is $version but the release tag is $GITHUB_REF_NAME"
-            exit 1
-          fi
+          # trusted publishing depends on (no NPM_TOKEN is set anywhere).
       - run: npm ci
       # prepublishOnly runs typecheck, the parity suite, and the build
       # (with publint + attw) before anything reaches the registry.
-      - run: npm publish
+      - run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

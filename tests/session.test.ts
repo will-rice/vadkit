@@ -24,6 +24,9 @@ function fakeProvider(windowSamples = 400, hopSamples = 160): VadProvider {
     reset(): void {
       // stateless
     },
+    dispose(): Promise<void> {
+      return Promise.resolve();
+    },
   };
 }
 
@@ -92,21 +95,19 @@ test("start(source) drives the session and stop() ends it", async () => {
   expect(utterances).toHaveLength(1);
 });
 
-test("a 32 kHz source is resampled and yields the same events", async () => {
-  const starts: number[] = [];
+test("a non-16 kHz source reports a concise error instead of degrading", async () => {
+  const errors: unknown[] = [];
+  const frames: number[] = [];
   const vad = await createVad(() => Promise.resolve(fakeProvider()), {
     ...OPTS,
-    onSpeechStart: (t) => starts.push(t),
+    onFrame: (f) => frames.push(f.index),
+    onError: (e) => errors.push(e),
   });
-  // Same signal at 32 kHz: every sample doubled in time.
-  const pcm32 = new Float32Array(48000);
-  pcm32.fill(0.9, 16000, 32000);
-  await vad.start(fakeSource(pcm32, 32000, 1024));
-  await vad.processChunk(new Float32Array(0));
-  expect(starts).toHaveLength(1);
-  const start = starts[0] ?? NaN;
-  expect(start).toBeGreaterThanOrEqual(0.4);
-  expect(start).toBeLessThanOrEqual(0.6);
+  await vad.start(fakeSource(new Float32Array(48000), 32000, 1024));
+  await vad.processChunk(new Float32Array(0)); // barrier: drain the serialized queue
+  expect(errors.length).toBeGreaterThanOrEqual(1);
+  expect(String(errors[0])).toMatch(/32000 Hz .* 16 kHz/);
+  expect(frames).toHaveLength(0); // nothing was processed at the wrong rate
 });
 
 test("start twice throws", async () => {
@@ -176,6 +177,71 @@ test("a provider probability outside [0, 1] rejects instead of poisoning the str
   };
   const vad = await createVad(() => Promise.resolve(broken), OPTS);
   await expect(vad.processChunk(new Float32Array(1000))).rejects.toThrow(/outside \[0, 1\]/);
+});
+
+test("flush() delivers an utterance still open and returns it", async () => {
+  const utterances: Utterance[] = [];
+  const vad = await createVad(() => Promise.resolve(fakeProvider()), {
+    ...OPTS,
+    onSpeechEnd: (u) => utterances.push(u),
+  });
+  // 0.5 s silence then speech running to the end of the audio: no trailing
+  // silence, so only a flush can close the segment.
+  const pcm = new Float32Array(16000);
+  pcm.fill(0.9, 8000);
+  await vad.processChunk(pcm);
+  expect(utterances).toHaveLength(0);
+  const flushed = await vad.flush();
+  expect(utterances).toHaveLength(1);
+  expect(flushed).toBe(utterances[0]);
+  const u = utterances[0];
+  if (u === undefined) return;
+  expect(u.sampleRate).toBe(16000);
+  expect(u.startTime).toBeLessThan(0.55);
+  expect(u.endTime).toBeGreaterThan(0.95);
+  expect(u.audio).toEqual(
+    pcm.slice(Math.round(u.startTime * 16000), Math.round(u.endTime * 16000)),
+  );
+  // Nothing left open: a second flush is a no-op.
+  expect(await vad.flush()).toBeNull();
+});
+
+test("stop() flushes the open utterance captured from a source", async () => {
+  const utterances: Utterance[] = [];
+  const vad = await createVad(() => Promise.resolve(fakeProvider()), {
+    ...OPTS,
+    onSpeechEnd: (u) => utterances.push(u),
+  });
+  const pcm = new Float32Array(16000);
+  pcm.fill(0.9, 8000);
+  await vad.start(fakeSource(pcm, 16000, 512));
+  await vad.processChunk(new Float32Array(0)); // barrier: drain the serialized queue
+  expect(utterances).toHaveLength(0);
+  await vad.stop();
+  expect(utterances).toHaveLength(1);
+});
+
+test("dispose() flushes, then releases the provider", async () => {
+  let disposed = false;
+  const provider = fakeProvider();
+  const tracked: VadProvider = {
+    ...provider,
+    dispose(): Promise<void> {
+      disposed = true;
+      return Promise.resolve();
+    },
+  };
+  const utterances: Utterance[] = [];
+  const vad = await createVad(() => Promise.resolve(tracked), {
+    ...OPTS,
+    onSpeechEnd: (u) => utterances.push(u),
+  });
+  const pcm = new Float32Array(16000);
+  pcm.fill(0.9, 8000);
+  await vad.processChunk(pcm);
+  await vad.dispose();
+  expect(disposed).toBe(true);
+  expect(utterances).toHaveLength(1);
 });
 
 test("reset between un-awaited chunks restarts cleanly", async () => {

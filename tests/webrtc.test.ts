@@ -75,3 +75,9 @@ test("20 ms frames use 320-sample geometry", async () => {
   expect(vad.stream.provider.hopSamples).toBe(320);
   expect(vad.stream.provider.frameSec).toBeCloseTo(0.02, 9);
 });
+
+test("dispose frees the wasm instance and frame buffer", async () => {
+  const vad = await createVad(webrtcVad());
+  await vad.processChunk(loadPcm());
+  await vad.dispose(); // must not throw; frees _fvad_new + _malloc allocations
+});

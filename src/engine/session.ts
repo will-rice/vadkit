@@ -1,6 +1,5 @@
 import { SAMPLE_RATE } from "../types.js";
 import type { ProviderFactory } from "../types.js";
-import { LinearResampler } from "./resampler.js";
 import { AudioRingBuffer } from "./ringBuffer.js";
 import { DEFAULT_VAD_OPTIONS } from "./segmenter.js";
 import type { VadFrame, VadOptions } from "./segmenter.js";
@@ -21,6 +20,8 @@ export interface AudioSource {
 
 export interface Utterance {
   audio: Float32Array;
+  /** Sample rate of `audio`; always 16000. */
+  sampleRate: number;
   startTime: number;
   endTime: number;
 }
@@ -39,7 +40,6 @@ export class VadSession {
   private readonly callbacks: VadSessionCallbacks;
   private readonly ring: AudioRingBuffer;
   private readonly queue = new SerialQueue();
-  private resampler: LinearResampler | null = null;
   private source: AudioSource | null = null;
 
   constructor(stream: VadStream, callbacks: VadSessionCallbacks) {
@@ -59,14 +59,26 @@ export class VadSession {
     return this.queue.run(() => this.processContiguous(pcm));
   }
 
-  /** Capture from a source until stop(); chunks are resampled if needed. */
+  /**
+   * Capture from a source until stop(). Sources must deliver 16 kHz audio
+   * (micSource gets that natively from its AudioContext); other rates are
+   * reported to onError rather than silently degraded.
+   */
   async start(source: AudioSource): Promise<void> {
     if (this.source !== null) throw new Error("session already started");
     this.source = source;
     try {
       await source.start((pcm, sampleRate) => {
-        const chunk = sampleRate === SAMPLE_RATE ? pcm : this.resample(pcm, sampleRate);
-        const result = this.processChunk(chunk);
+        const result = this.queue.run(() => {
+          if (sampleRate !== SAMPLE_RATE) {
+            throw new Error(
+              `source delivered ${String(sampleRate)} Hz audio; vadkit consumes 16 kHz — ` +
+                "capture through a 16 kHz AudioContext, or decode files with a " +
+                "16 kHz OfflineAudioContext",
+            );
+          }
+          return this.processContiguous(pcm);
+        });
         const onError = this.callbacks.onError;
         if (onError) {
           result.catch(onError);
@@ -80,9 +92,32 @@ export class VadSession {
     }
   }
 
+  /** Stop capture, then flush so a still-open utterance is delivered. */
   async stop(): Promise<void> {
     await this.source?.stop();
     this.source = null;
+    await this.flush();
+  }
+
+  /**
+   * End any open utterance now, as if the stream ended: it is delivered to
+   * onSpeechEnd and returned (null if no utterance was open). Ordered
+   * behind in-flight processing.
+   */
+  flush(): Promise<Utterance | null> {
+    return this.queue.run(async () => {
+      let utterance: Utterance | null = null;
+      for (const event of await this.stream.flush()) {
+        if (event.type === "speech_end") utterance = this.emitSpeechEnd(event);
+      }
+      return utterance;
+    });
+  }
+
+  /** Stop and flush, then release the provider. Unusable afterwards. */
+  async dispose(): Promise<void> {
+    await this.stop();
+    await this.stream.dispose();
   }
 
   /** Start a new utterance stream. Ordered behind in-flight processing. */
@@ -90,7 +125,6 @@ export class VadSession {
     return this.queue.run(async () => {
       await this.stream.reset();
       this.ring.reset();
-      this.resampler = null;
     });
   }
 
@@ -108,14 +142,7 @@ export class VadSession {
           if (event.type === "speech_start") {
             this.callbacks.onSpeechStart?.(event.time);
           } else {
-            this.callbacks.onSpeechEnd?.({
-              audio: this.ring.slice(
-                Math.round(event.startTime * SAMPLE_RATE),
-                Math.round(event.time * SAMPLE_RATE),
-              ),
-              startTime: event.startTime,
-              endTime: event.time,
-            });
+            this.emitSpeechEnd(event);
           }
         }
       }
@@ -123,9 +150,18 @@ export class VadSession {
     return frames;
   }
 
-  private resample(pcm: Float32Array, sampleRate: number): Float32Array {
-    this.resampler ??= new LinearResampler(sampleRate);
-    return this.resampler.process(pcm);
+  private emitSpeechEnd(event: { time: number; startTime: number }): Utterance {
+    const utterance: Utterance = {
+      audio: this.ring.slice(
+        Math.round(event.startTime * SAMPLE_RATE),
+        Math.round(event.time * SAMPLE_RATE),
+      ),
+      sampleRate: SAMPLE_RATE,
+      startTime: event.startTime,
+      endTime: event.time,
+    };
+    this.callbacks.onSpeechEnd?.(utterance);
+    return utterance;
   }
 }
 

@@ -1,7 +1,7 @@
 import type { VadProvider } from "../types.js";
 import { ChunkBuffer } from "./chunkBuffer.js";
 import { Segmenter } from "./segmenter.js";
-import type { VadFrame, VadOptions } from "./segmenter.js";
+import type { VadEvent, VadFrame, VadOptions } from "./segmenter.js";
 import { SerialQueue } from "./serialQueue.js";
 
 /** Streaming VAD engine over one provider; all state changes are serialized. */
@@ -32,6 +32,19 @@ export class VadStream {
    */
   processChunk(pcm: Float32Array): Promise<VadFrame[]> {
     return this.queue.run(() => this.processContiguous(pcm));
+  }
+
+  /**
+   * End any open segment now, as if the stream ended. Buffered audio too
+   * short to fill a provider window (under one hop) is not processed.
+   */
+  flush(): Promise<VadEvent[]> {
+    return this.queue.run(() => this.segmenter.flush());
+  }
+
+  /** Release the provider's resources. The stream is unusable afterwards. */
+  dispose(): Promise<void> {
+    return this.queue.run(() => this.provider.dispose());
   }
 
   /** Start a new stream. Ordered behind in-flight processChunk calls. */

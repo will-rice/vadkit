@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version-file: .nvmrc
+          node-version: latest
           cache: npm
       - run: npm ci
       - run: npm run format:check
@@ -20,3 +20,26 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  node-floor:
+    name: tests on Node 22 (consumer floor)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # Install with the dev toolchain's Node: devEngines needs npm >= 11.5,
+      # and Node 22 bundles npm 10, which errors on the devEngines field
+      # instead of downloading a newer npm.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: latest
+          cache: npm
+      - run: npm ci
+      # Then run the suite on the Node version "engines" promises consumers,
+      # invoking the runner directly so npm's gate is not in the path.
+      # package-manager-cache off: setup-node v7 otherwise auto-runs npm
+      # (devEngines names npm), which fails the same gate under npm 10.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - run: node node_modules/.bin/vp test run

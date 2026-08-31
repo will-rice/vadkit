@@ -107,7 +107,7 @@ function callbacksFor(name: string): {
 /**
  * Split one AudioSource into n AudioSources sharing its start/stop: the
  * underlying source starts once all consumers started and stops once all
- * consumers stopped. Keeps resampling inside VadSession.start.
+ * consumers stopped.
  */
 function teeSource(source: AudioSource, count: number): AudioSource[] {
   const listeners: ((pcm: Float32Array, sampleRate: number) => void)[] = [];

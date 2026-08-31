@@ -35,3 +35,10 @@ test("matches the silero-vad package frame by frame", async () => {
     );
   }
 });
+
+test("dispose releases the ONNX session", async () => {
+  const model = readFileSync(path.join(HERE, "..", "models", "silero_vad.onnx"));
+  const vad = await createVad(sileroVad({ model }));
+  await vad.processChunk(new Float32Array(1024));
+  await vad.dispose();
+});

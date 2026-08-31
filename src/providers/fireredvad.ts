@@ -54,6 +54,10 @@ class FireRedProvider implements VadProvider {
   reset(): void {
     this.caches = zeroCaches();
   }
+
+  dispose(): Promise<void> {
+    return this.session.release();
+  }
 }
 
 function zeroCaches(): ort.Tensor {

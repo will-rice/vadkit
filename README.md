@@ -45,17 +45,38 @@ const vad = await createVad(sileroVad(), {
   },
 });
 
-await vad.start(micSource()); // resamples if the browser ignores 16 kHz
+await vad.start(micSource()); // the browser's AudioContext captures at 16 kHz natively
 // ... later:
-await vad.stop();
+await vad.stop(); // flushes: an utterance still in progress is delivered
+await vad.dispose(); // releases the model/wasm resources when done for good
 ```
+
+`encodeWav(utterance.audio)` turns an utterance into a 16-bit PCM WAV
+`ArrayBuffer`, ready to upload to an ASR API.
 
 Or feed PCM yourself — chunks of any length, from any source:
 
 ```ts
 const frames = await vad.processChunk(pcm); // Float32Array in [-1, 1] at 16 kHz
 // frames[i]: { time, probability, smoothedProbability, isSpeech, events }
+const last = await vad.flush(); // end of stream: closes an open utterance
 ```
+
+That is the whole offline story too — the browser decodes and resamples
+files in one native step:
+
+```ts
+const audio = await new OfflineAudioContext(1, 1, 16000).decodeAudioData(bytes);
+await vad.processChunk(audio.getChannelData(0));
+const last = await vad.flush(); // closes a still-open final utterance
+```
+
+All input is 16 kHz; there is deliberately no resampler in vadkit.
+Sample-rate conversion is the platform's job: `micSource` captures through
+a 16 kHz `AudioContext` (every evergreen browser honors the rate and
+converts natively), `decodeAudioData` resamples decoded files to its
+context's rate as above, and a source that delivers another rate raises a
+concise error via `onError` rather than degrading silently.
 
 Options are denominated in seconds and mean the same thing across providers
 (`speechThreshold`, `smoothWindowSec`, `riseDelaySec`, `fallDelaySec`,
@@ -80,8 +101,9 @@ fraction-of-window-voiced value, so tune sensitivity primarily with
 `aggressiveness: 0-3`. Its parity fixture is bit-exact against
 py-webrtcvad across all four modes.
 
-Custom backends implement the `VadProvider` interface (window/hop geometry +
-stateful `process(samples) → probabilities`) — see `src/types.ts`.
+Custom backends implement the `VadProvider` interface (window/hop geometry,
+stateful `process(samples) → probabilities`, `reset`/`dispose`) — see
+`src/types.ts`.
 
 ## Bundling
 
@@ -100,9 +122,13 @@ backend is single-threaded and rejects overlapping runs otherwise).
 
 ## Demo
 
+Live at [will-rice.github.io/vadkit](https://will-rice.github.io/vadkit/) —
+all three providers side by side on one mic feed (audio never leaves the
+page). Or locally:
+
 ```sh
 npm install
-npm run demo   # all three providers side by side on one mic feed
+npm run demo
 ```
 
 ## Development
@@ -116,8 +142,10 @@ configures the dev server, tests, and library packaging.
 
 - **Node >= 24** (see `.nvmrc`; `nvm use` if you use nvm). Runtime support
   floor for consumers is Node >= 22.
-- **npm >= 11.5** — enforced via `devEngines`; a newer npm downloads
-  automatically on install if yours is older.
+- **npm >= 11.5** — enforced via `devEngines`. npm 11 downloads a newer
+  npm automatically if yours is older; npm 10 (as bundled with Node 22)
+  fails the gate instead, so develop on Node 24. CI still runs the test
+  suite on Node 22, the consumer floor, by invoking the runner directly.
 - `npm install` brings in the whole toolchain and installs the git hooks
   (pre-commit: format, lint, typecheck on staged files; commit-msg:
   conventional commits via commitlint). No global installs needed.
@@ -153,15 +181,17 @@ normal development — only when changing what they generate.
 
 ## Releasing
 
-Releases publish to npm from GitHub Actions via
-[npm trusted publishing](https://docs.npmjs.com/trusted-publishers) (OIDC,
-no tokens; provenance attached automatically):
-
-1. Bump `version` in package.json, commit, and push.
-2. Tag it (`git tag vX.Y.Z && git push origin vX.Y.Z`).
-3. Create a GitHub release for the tag — the release workflow verifies the
-   tag matches package.json, then `npm publish` runs the full gate
-   (typecheck, parity suite, build with publint/attw) on the way out.
+Releases are automated with
+[semantic-release](https://github.com/semantic-release/semantic-release):
+each push to `main` whose conventional commits warrant a release computes
+the version, updates CHANGELOG.md and package.json, tags, creates the
+GitHub release, and publishes to npm via
+[trusted publishing](https://docs.npmjs.com/trusted-publishers) (OIDC, no
+tokens; provenance attached automatically); `npm publish` runs the full
+gate (typecheck, parity suite, build with publint/attw) on the way out.
+Pre-1.0, breaking changes bump the minor version (a `releaseRules`
+override in `.releaserc.json`); delete that override to release 1.0.0 on
+the next breaking change.
 
 Design docs live in [docs/superpowers/specs/](https://github.com/will-rice/vadkit/tree/main/docs/superpowers/specs)
 in the repository. (TEN-VAD was evaluated and dropped: Agora's license terms
