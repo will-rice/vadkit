@@ -4,9 +4,9 @@ import { fileURLToPath } from "node:url";
 
 import { expect, test } from "vite-plus/test";
 
-import { createVad } from "../src/index.js";
-import { fireRedVad } from "../src/providers/fireredvad.js";
-import { readWav16kMono } from "./wav.js";
+import { createVad } from "../src/index.ts";
+import { fireRedVad } from "../src/providers/fireredvad.ts";
+import { readWav16kMono } from "./wav.ts";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 

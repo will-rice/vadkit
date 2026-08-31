@@ -1,8 +1,8 @@
-import type { VadProvider } from "../types.js";
-import { ChunkBuffer } from "./chunkBuffer.js";
-import { Segmenter } from "./segmenter.js";
-import type { VadEvent, VadFrame, VadOptions } from "./segmenter.js";
-import { SerialQueue } from "./serialQueue.js";
+import type { VadProvider } from "../types.ts";
+import { ChunkBuffer } from "./chunkBuffer.ts";
+import { Segmenter } from "./segmenter.ts";
+import type { VadEvent, VadFrame, VadOptions } from "./segmenter.ts";
+import { SerialQueue } from "./serialQueue.ts";
 
 /** Streaming VAD engine over one provider; all state changes are serialized. */
 export class VadStream {

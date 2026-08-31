@@ -1,5 +1,5 @@
-import { SAMPLE_RATE } from "../types.js";
-import type { ProviderFactory, VadProvider } from "../types.js";
+import { SAMPLE_RATE } from "../types.ts";
+import type { ProviderFactory, VadProvider } from "../types.ts";
 import createFvadModule from "./libfvad/fvad.js";
 import type { FvadModule } from "./libfvad/fvad.js";
 

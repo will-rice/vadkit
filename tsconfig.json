@@ -3,11 +3,14 @@
     "target": "ES2022",
     "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
 
-    // NodeNext enforces explicit .js extensions in relative imports, so source
-    // that typechecks is source bare Node can execute. The parity tests run
-    // onnxruntime-web under Node, where extensionless ESM imports throw.
+    // TypeScript-first imports: relative specifiers name the real .ts files,
+    // so bare Node executes the source directly via type stripping (see
+    // erasableSyntaxOnly below). rewriteRelativeImportExtensions keeps any
+    // tsc emit runtime-correct (.ts -> .js); tsdown resolves them when
+    // bundling the package.
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "rewriteRelativeImportExtensions": true,
     "moduleDetection": "force",
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
@@ -25,8 +28,6 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
 
-    // Fixture generator scripts run under Node type stripping and import
-    // local .ts files by their real extension.
     "allowImportingTsExtensions": true,
 
     "skipLibCheck": true,
