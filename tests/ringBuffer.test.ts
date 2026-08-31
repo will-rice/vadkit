@@ -1,6 +1,6 @@
 import { expect, test } from "vite-plus/test";
 
-import { AudioRingBuffer } from "../src/engine/ringBuffer.js";
+import { AudioRingBuffer } from "#engine/ringBuffer.ts";
 
 function ramp(start: number, length: number): Float32Array {
   return Float32Array.from({ length }, (_, i) => start + i);

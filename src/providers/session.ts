@@ -1,6 +1,6 @@
 import * as ort from "onnxruntime-web";
 
-import { SerialQueue } from "../engine/serialQueue.js";
+import { SerialQueue } from "#engine/serialQueue.ts";
 
 // ort-web's wasm backend is single-threaded and rejects overlapping run()
 // calls across sessions ("Session already started") in bundled apps.

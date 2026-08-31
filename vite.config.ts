@@ -19,7 +19,7 @@ export default defineConfig({
     platform: "browser",
     target: "es2022",
     format: ["esm"],
-    dts: true,
-    sourcemap: false,
+    dts: { sourcemap: true },
+    sourcemap: true,
   },
 });

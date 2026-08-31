@@ -1,6 +1,6 @@
 import { expect, test } from "vite-plus/test";
 
-import { ChunkBuffer } from "../src/engine/chunkBuffer.js";
+import { ChunkBuffer } from "#engine/chunkBuffer.ts";
 
 function ramp(start: number, length: number): Float32Array {
   return Float32Array.from({ length }, (_, i) => start + i);

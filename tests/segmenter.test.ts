@@ -1,7 +1,7 @@
 import { expect, test } from "vite-plus/test";
 
-import { DEFAULT_VAD_OPTIONS, Segmenter } from "../src/engine/segmenter.js";
-import type { VadFrame } from "../src/engine/segmenter.js";
+import { DEFAULT_VAD_OPTIONS, Segmenter } from "#engine/segmenter.ts";
+import type { VadFrame } from "#engine/segmenter.ts";
 
 const OPTS = {
   ...DEFAULT_VAD_OPTIONS,

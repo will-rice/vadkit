@@ -1,7 +1,7 @@
-import { SAMPLE_RATE } from "../types.js";
-import type { ProviderFactory, VadProvider } from "../types.js";
-import createFvadModule from "./libfvad/fvad.js";
-import type { FvadModule } from "./libfvad/fvad.js";
+import createFvadModule from "#providers/libfvad/fvad.js";
+import type { FvadModule } from "#providers/libfvad/fvad.js";
+import { SAMPLE_RATE } from "#types.ts";
+import type { ProviderFactory, VadProvider } from "#types.ts";
 
 export interface WebrtcVadOptions {
   /** WebRTC VAD mode: 0 = most permissive ... 3 = most aggressive. Default 0. */

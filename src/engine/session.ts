@@ -1,10 +1,10 @@
-import { SAMPLE_RATE } from "../types.js";
-import type { ProviderFactory } from "../types.js";
-import { AudioRingBuffer } from "./ringBuffer.js";
-import { DEFAULT_VAD_OPTIONS } from "./segmenter.js";
-import type { VadFrame, VadOptions } from "./segmenter.js";
-import { SerialQueue } from "./serialQueue.js";
-import { VadStream } from "./vadStream.js";
+import { AudioRingBuffer } from "#engine/ringBuffer.ts";
+import { DEFAULT_VAD_OPTIONS } from "#engine/segmenter.ts";
+import type { VadFrame, VadOptions } from "#engine/segmenter.ts";
+import { SerialQueue } from "#engine/serialQueue.ts";
+import { VadStream } from "#engine/vadStream.ts";
+import { SAMPLE_RATE } from "#types.ts";
+import type { ProviderFactory } from "#types.ts";
 
 // Each serialized write/dispatch step advances the ring by at most this many
 // samples, so events always slice audio the ring still retains — the ring's

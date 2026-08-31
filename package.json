@@ -18,9 +18,13 @@
   "types": "dist/index.d.ts",
   "files": [
     "dist",
+    "src",
     "models",
     "THIRD_PARTY_NOTICES"
   ],
+  "imports": {
+    "#*": "./src/*"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

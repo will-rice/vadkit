@@ -1,4 +1,4 @@
-import { SAMPLE_RATE } from "./types.js";
+import { SAMPLE_RATE } from "#types.ts";
 
 /**
  * Encode mono PCM in [-1, 1] as a 16-bit PCM WAV file, e.g. an Utterance's
