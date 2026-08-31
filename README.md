@@ -16,6 +16,10 @@ committed fixtures, and the engine serializes all stateful model calls so
 event-driven audio delivery (AudioWorklet callbacks) cannot race recurrent
 state.
 
+I'm learning TypeScript as I build this, so if you spot something
+unidiomatic — API design, types, packaging, anything — I'd genuinely
+appreciate an issue or PR saying so.
+
 ## Install
 
 ```sh
