@@ -29,6 +29,8 @@ jobs:
       - run: npm ci
       - run: npx vp build demo --base /vadkit/
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true # creates the Pages site on first run
       - uses: actions/upload-pages-artifact@v3
         with:
           path: demo/dist
