@@ -6,7 +6,6 @@ export { createVad, VadSession } from "./engine/session.js";
 export type { AudioSource, Utterance, VadSessionCallbacks } from "./engine/session.js";
 export { VadStream } from "./engine/vadStream.js";
 export { micSource } from "./micSource.js";
-export { resampleTo16k } from "./resample.js";
 export { encodeWav } from "./wav.js";
 export type { MicSourceOptions } from "./micSource.js";
 export { SAMPLE_RATE } from "./types.js";

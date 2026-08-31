@@ -73,7 +73,8 @@ export class VadSession {
           if (sampleRate !== SAMPLE_RATE) {
             throw new Error(
               `source delivered ${String(sampleRate)} Hz audio; vadkit consumes 16 kHz — ` +
-                "resample upstream (resampleTo16k covers complete buffers)",
+                "capture through a 16 kHz AudioContext, or decode files with a " +
+                "16 kHz OfflineAudioContext",
             );
           }
           return this.processContiguous(pcm);

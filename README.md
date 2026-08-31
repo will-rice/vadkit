@@ -62,17 +62,21 @@ const frames = await vad.processChunk(pcm); // Float32Array in [-1, 1] at 16 kHz
 const last = await vad.flush(); // end of stream: closes an open utterance
 ```
 
-That is the whole offline story too: chunk a file through `processChunk`,
-then `flush()` — it delivers a still-open final utterance to `onSpeechEnd`
-and returns it.
+That is the whole offline story too — the browser decodes and resamples
+files in one native step:
+
+```ts
+const audio = await new OfflineAudioContext(1, 1, 16000).decodeAudioData(bytes);
+await vad.processChunk(audio.getChannelData(0));
+const last = await vad.flush(); // closes a still-open final utterance
+```
 
 All input is 16 kHz; there is deliberately no resampler in vadkit.
 Sample-rate conversion is the platform's job: `micSource` captures through
 a 16 kHz `AudioContext` (every evergreen browser honors the rate and
-converts natively), decoded files go through `resampleTo16k(pcm, fromRate)`
-(a thin `OfflineAudioContext` wrapper), and a source that still delivers
-another rate raises a concise error via `onError` rather than degrading
-silently.
+converts natively), `decodeAudioData` resamples decoded files to its
+context's rate as above, and a source that delivers another rate raises a
+concise error via `onError` rather than degrading silently.
 
 Options are denominated in seconds and mean the same thing across providers
 (`speechThreshold`, `smoothWindowSec`, `riseDelaySec`, `fallDelaySec`,
