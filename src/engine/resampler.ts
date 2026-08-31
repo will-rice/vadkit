@@ -8,6 +8,13 @@ import { SAMPLE_RATE } from "../types.js";
  * attenuated instead of aliasing into the band the VAD models see. The
  * filter's group delay is compensated, so output timestamps stay aligned
  * with the input.
+ *
+ * This is a fallback: capture paths get native-rate conversion by asking
+ * for a 16 kHz AudioContext, so this only runs when the browser refuses
+ * (or when PCM is fed directly at another rate). Plain JS suffices for
+ * that — ~300x real-time at 48 kHz, about the cost of one Silero
+ * inference pass per audio-second — so a wasm resampler dependency would
+ * buy nothing measurable.
  */
 export class LinearResampler {
   private readonly step: number;
