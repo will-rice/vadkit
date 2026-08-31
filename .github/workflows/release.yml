@@ -1,34 +1,45 @@
 name: Release
 
+# release-please turns conventional commits on main into a running release
+# PR (version bump + CHANGELOG). Merging that PR creates the tag and GitHub
+# release and publishes to npm — all in this workflow, because releases
+# created with the workflow's own token do not trigger other workflows.
 on:
-  release:
-    types: [published]
-
-permissions:
-  contents: read
-  id-token: write # npm trusted publishing (OIDC) + provenance
+  push:
+    branches: [main]
 
 jobs:
-  publish:
+  release-please:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # tags + releases
+      pull-requests: write # the release PR
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+
+  publish:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing (OIDC) + provenance
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
       - uses: actions/setup-node@v7
         with:
-          # Node 24, not .nvmrc's 22: trusted publishing needs npm >= 11.5,
-          # which ships with Node 24 (Node 22 bundles npm 10).
-          node-version: 24
+          # Trusted publishing needs npm >= 11.5, which ships with Node 24.
+          node-version-file: .nvmrc
           cache: npm
           # No registry-url: it writes an .npmrc _authToken line that makes
           # npm think credentials are configured and skip the OIDC exchange
           # trusted publishing depends on.
-      - name: Verify tag matches package.json version
-        run: |
-          version="v$(node -p "require('./package.json').version")"
-          if [ "$version" != "$GITHUB_REF_NAME" ]; then
-            echo "package.json is $version but the release tag is $GITHUB_REF_NAME"
-            exit 1
-          fi
       - run: npm ci
       # prepublishOnly runs typecheck, the parity suite, and the build
       # (with publint + attw) before anything reaches the registry.
