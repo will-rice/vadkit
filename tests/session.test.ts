@@ -6,11 +6,11 @@ import type { VadProvider } from "#types.ts";
 
 import { fakeProvider } from "./helpers.ts";
 
-function fakeSource(pcm: Float32Array, sampleRate: number, chunkSize: number): AudioSource {
+function fakeSource(pcm: Float32Array, chunkSize: number): AudioSource {
   return {
     start(onChunk): Promise<void> {
       for (let i = 0; i < pcm.length; i += chunkSize) {
-        onChunk(pcm.subarray(i, i + chunkSize), sampleRate);
+        onChunk(pcm.subarray(i, i + chunkSize));
       }
       return Promise.resolve();
     },
@@ -65,31 +65,16 @@ test("start(source) drives the session and stop() ends it", async () => {
     ...OPTS,
     onSpeechEnd: (u) => utterances.push(u),
   });
-  await vad.start(fakeSource(speechPcm(), 16000, 512));
+  await vad.start(fakeSource(speechPcm(), 512));
   await vad.processChunk(new Float32Array(0)); // barrier: drain the serialized queue
   await vad.stop();
   expect(utterances).toHaveLength(1);
 });
 
-test("a non-16 kHz source reports a concise error instead of degrading", async () => {
-  const errors: unknown[] = [];
-  const frames: number[] = [];
-  const vad = await createVad(() => Promise.resolve(fakeProvider()), {
-    ...OPTS,
-    onFrame: (f) => frames.push(f.index),
-    onError: (e) => errors.push(e),
-  });
-  await vad.start(fakeSource(new Float32Array(48000), 32000, 1024));
-  await vad.processChunk(new Float32Array(0)); // barrier: drain the serialized queue
-  expect(errors.length).toBeGreaterThanOrEqual(1);
-  expect(String(errors[0])).toMatch(/32000 Hz .* 16 kHz/);
-  expect(frames).toHaveLength(0); // nothing was processed at the wrong rate
-});
-
 test("start twice throws", async () => {
   const vad = await createVad(() => Promise.resolve(fakeProvider()), OPTS);
-  await vad.start(fakeSource(new Float32Array(1000), 16000, 500));
-  await expect(vad.start(fakeSource(new Float32Array(1000), 16000, 500))).rejects.toThrow(
+  await vad.start(fakeSource(new Float32Array(1000), 500));
+  await expect(vad.start(fakeSource(new Float32Array(1000), 500))).rejects.toThrow(
     /already started/,
   );
 });
@@ -120,7 +105,7 @@ test("a failed start clears the source so the session can start again", async ()
     stop: () => Promise.resolve(),
   };
   await expect(vad.start(failing)).rejects.toThrow("denied");
-  await vad.start(fakeSource(speechPcm(), 16000, 512)); // must not throw
+  await vad.start(fakeSource(speechPcm(), 512)); // must not throw
   await vad.stop();
 });
 
@@ -190,7 +175,7 @@ test("stop() flushes the open utterance captured from a source", async () => {
   });
   const pcm = new Float32Array(16000);
   pcm.fill(0.9, 8000);
-  await vad.start(fakeSource(pcm, 16000, 512));
+  await vad.start(fakeSource(pcm, 512));
   await vad.processChunk(new Float32Array(0)); // barrier: drain the serialized queue
   expect(utterances).toHaveLength(0);
   await vad.stop();

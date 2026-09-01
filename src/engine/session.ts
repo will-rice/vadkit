@@ -11,10 +11,14 @@ import type { ProviderFactory } from "#types.ts";
 // capacity slack is sized for it in the constructor below.
 const MAX_WRITE_SAMPLES = SAMPLE_RATE;
 
-/** A push source of PCM chunks (e.g. a microphone). */
+/** A push source of 16 kHz PCM chunks (e.g. a microphone). */
 export interface AudioSource {
-  /** Begin delivering chunks; resolves once capture is running. */
-  start(onChunk: (pcm: Float32Array, sampleRate: number) => void): Promise<void>;
+  /**
+   * Begin delivering 16 kHz chunks; resolves once capture is running. A
+   * source that cannot capture at 16 kHz must reject here (micSource does)
+   * rather than deliver another rate.
+   */
+  start(onChunk: (pcm: Float32Array) => void): Promise<void>;
   stop(): Promise<void>;
 }
 
@@ -59,26 +63,13 @@ export class VadSession {
     return this.queue.run(() => this.processContiguous(pcm));
   }
 
-  /**
-   * Capture from a source until stop(). Sources must deliver 16 kHz audio
-   * (micSource gets that natively from its AudioContext); other rates are
-   * reported to onError rather than silently degraded.
-   */
+  /** Capture from a source until stop(). */
   async start(source: AudioSource): Promise<void> {
     if (this.source !== null) throw new Error("session already started");
     this.source = source;
     try {
-      await source.start((pcm, sampleRate) => {
-        const result = this.queue.run(() => {
-          if (sampleRate !== SAMPLE_RATE) {
-            throw new Error(
-              `source delivered ${String(sampleRate)} Hz audio; vadkit consumes 16 kHz — ` +
-                "capture through a 16 kHz AudioContext, or decode files with a " +
-                "16 kHz OfflineAudioContext",
-            );
-          }
-          return this.processContiguous(pcm);
-        });
+      await source.start((pcm) => {
+        const result = this.queue.run(() => this.processContiguous(pcm));
         const onError = this.callbacks.onError;
         if (onError) {
           result.catch(onError);

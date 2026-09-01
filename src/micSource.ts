@@ -45,7 +45,11 @@ export interface MicSourceOptions {
   constraints?: MediaTrackConstraints | boolean | undefined;
 }
 
-/** Microphone AudioSource: getUserMedia + a 16 kHz AudioContext + AudioWorklet. */
+/**
+ * Microphone AudioSource: getUserMedia + a 16 kHz AudioContext + AudioWorklet.
+ * start() rejects (and releases the microphone) if the browser does not
+ * honor the 16 kHz request, so a session never sees another rate.
+ */
 export function micSource(options: MicSourceOptions = {}): AudioSource {
   let context: AudioContext | null = null;
   let mediaStream: MediaStream | null = null;
@@ -63,12 +67,17 @@ export function micSource(options: MicSourceOptions = {}): AudioSource {
   }
 
   return {
-    async start(onChunk: (pcm: Float32Array, sampleRate: number) => void): Promise<void> {
+    async start(onChunk: (pcm: Float32Array) => void): Promise<void> {
       mediaStream = await navigator.mediaDevices.getUserMedia({
         audio: options.constraints ?? true,
       });
       try {
         context = new AudioContext({ sampleRate: SAMPLE_RATE });
+        if (context.sampleRate !== SAMPLE_RATE) {
+          throw new Error(
+            `AudioContext opened at ${context.sampleRate} Hz; vadkit consumes 16 kHz`,
+          );
+        }
         const url = URL.createObjectURL(new Blob([WORKLET_CODE], { type: "text/javascript" }));
         try {
           await context.audioWorklet.addModule(url);
@@ -76,7 +85,6 @@ export function micSource(options: MicSourceOptions = {}): AudioSource {
           URL.revokeObjectURL(url);
         }
         const recorder = new AudioWorkletNode(context, "vadkit-recorder");
-        const sampleRate = context.sampleRate; // may differ if 16 kHz was not honored
         port = recorder.port;
         port.onmessage = (event: MessageEvent<Float32Array | "flushed">) => {
           if (event.data === "flushed") {
@@ -84,7 +92,7 @@ export function micSource(options: MicSourceOptions = {}): AudioSource {
             flushResolve = null;
             return;
           }
-          onChunk(event.data, sampleRate);
+          onChunk(event.data);
         };
         context.createMediaStreamSource(mediaStream).connect(recorder);
         if (context.state !== "running") await context.resume();
