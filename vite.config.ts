@@ -8,12 +8,17 @@ export default defineConfig({
   // assets resolve from node_modules during dev.
   optimizeDeps: { exclude: ["onnxruntime-web"] },
   test: { testTimeout: 60000 },
-  // Entries mirror src/, so output lands at dist/index.js and
-  // dist/providers/<name>.js — the paths package.json "exports" already
-  // pins. The providers glob means adding a provider needs no config
-  // change. publint + attw run as explicit build-script steps.
+  // One entry per package.json "exports" subpath, so output lands at
+  // dist/index.js and dist/providers/<name>.js. A new provider is added
+  // here and in "exports" together. publint + attw run as explicit
+  // build-script steps.
   pack: {
-    entry: ["src/index.ts", "src/providers/*.ts"],
+    entry: [
+      "src/index.ts",
+      "src/providers/fireredvad.ts",
+      "src/providers/silero.ts",
+      "src/providers/webrtc.ts",
+    ],
     tsconfig: "tsconfig.build.json",
     outDir: "dist",
     platform: "browser",
