@@ -15,6 +15,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # tests/browser runs in real Chromium (AudioWorklet capture path).
+      - run: npx playwright install --with-deps chromium
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
@@ -42,4 +44,4 @@ jobs:
         with:
           node-version: 22
           package-manager-cache: false
-      - run: node node_modules/.bin/vp test run
+      - run: node node_modules/.bin/vp test run --project node

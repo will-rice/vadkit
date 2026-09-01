@@ -153,11 +153,15 @@ configures the dev server, tests, and library packaging.
 - `npm install` brings in the whole toolchain and installs the git hooks
   (pre-commit: format, lint, typecheck on staged files; commit-msg:
   conventional commits via commitlint). No global installs needed.
+- `npx playwright install chromium` once: `tests/browser` drives the real
+  microphone capture path (AudioContext + AudioWorklet) in headless
+  Chromium against its fake media device.
 
 ### Everyday commands
 
 ```sh
-npm test           # vp test: engine unit tests + per-provider parity fixtures
+npm test           # vp test: engine unit tests, per-provider parity fixtures,
+                   # and the browser capture suite (--project node skips it)
 npm run typecheck  # strict tsc, package and demo configs
 npm run lint       # eslint (type-aware, strictTypeChecked)
 npm run format     # vp fmt (oxfmt; config in .oxfmtrc.json)
