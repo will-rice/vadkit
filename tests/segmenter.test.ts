@@ -105,3 +105,24 @@ test("after flush, a new segment needs a fresh rise delay and never overlaps the
   expect(start).toBeDefined();
   expect(start?.time ?? NaN).toBeGreaterThanOrEqual(flushEnd);
 });
+
+test("smoothing is a trailing mean over smoothWindowSec, shorter while it fills", () => {
+  const seg = new Segmenter({ ...OPTS, smoothWindowSec: 0.03 }, 0.01); // 3 frames
+  const smoothed = feed(seg, [0, 0.9, 0.9, 0.9, 0]).map((f) => f.smoothedProbability);
+  const expected = [0, 0.45, 0.6, 0.9, 0.6];
+  for (const [i, value] of expected.entries()) expect(smoothed[i]).toBeCloseTo(value, 9);
+});
+
+test("maxSpeechSec splits exactly at the limit, measured from the padded start", () => {
+  const seg = new Segmenter({ ...OPTS, maxSpeechSec: 0.06 }, 0.01);
+  const frames = feed(seg, new Array<number>(12).fill(0.9));
+  const events = frames.flatMap((f) => f.events);
+  // Start confirmed at index 2, pre-pad clamps the segment start to 0; the
+  // split lands on the first frame at or past 0.06 s, in the same frame.
+  expect(events.map((e) => e.type)).toEqual(["speech_start", "speech_end", "speech_start"]);
+  expect(events[0]?.time).toBeCloseTo(0, 9);
+  expect(events[1]?.time).toBeCloseTo(0.06, 9);
+  expect(events[1]?.type === "speech_end" && events[1].startTime).toBeCloseTo(0, 9);
+  expect(events[2]?.time).toBeCloseTo(0.06, 9);
+  expect(frames[6]?.events).toHaveLength(2);
+});
