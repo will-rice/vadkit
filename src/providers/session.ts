@@ -9,7 +9,11 @@ import { SerialQueue } from "#engine/serialQueue.ts";
 // actually execute in parallel.
 const inferenceQueue = new SerialQueue();
 
-/** Create an ort session from a model URL/path or raw bytes. */
+/**
+ * Create an ort session from a model URL/path or raw bytes. Both branches
+ * look identical because InferenceSession.create is overloaded per input
+ * type and does not accept the union; the ternary narrows it.
+ */
 export function createSession(
   model: string | Uint8Array,
   sessionOptions?: ort.InferenceSession.SessionOptions,

@@ -53,9 +53,10 @@ class WebrtcProvider implements VadProvider {
     const heapOffset = this.frameBuffer >> 1;
     for (let w = 0; w < numFrames; w++) {
       const frame = samples.subarray(w * this.windowSamples, (w + 1) * this.windowSamples);
-      for (const [i, sample] of frame.entries()) {
+      let cursor = heapOffset;
+      for (const sample of frame) {
         const scaled = Math.round(sample * 32768);
-        this.module.HEAP16[heapOffset + i] = Math.max(-32768, Math.min(32767, scaled));
+        this.module.HEAP16[cursor++] = Math.max(-32768, Math.min(32767, scaled));
       }
       const decision = this.module._fvad_process(
         this.instance,

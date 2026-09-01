@@ -21,9 +21,11 @@ export function encodeWav(audio: Float32Array, sampleRate: number = SAMPLE_RATE)
   view.setUint16(34, 16, true); // bits per sample
   view.setUint32(36, 0x64617461); // "data"
   view.setUint32(40, dataBytes, true);
-  for (const [i, sample] of audio.entries()) {
+  let offset = 44;
+  for (const sample of audio) {
     const scaled = Math.round(sample * 32768);
-    view.setInt16(44 + 2 * i, Math.max(-32768, Math.min(32767, scaled)), true);
+    view.setInt16(offset, Math.max(-32768, Math.min(32767, scaled)), true);
+    offset += 2;
   }
   return buffer;
 }
