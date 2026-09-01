@@ -78,9 +78,10 @@ const last = await vad.flush(); // closes a still-open final utterance
 All input is 16 kHz; there is deliberately no resampler in vadkit.
 Sample-rate conversion is the platform's job: `micSource` captures through
 a 16 kHz `AudioContext` (every evergreen browser honors the rate and
-converts natively), `decodeAudioData` resamples decoded files to its
-context's rate as above, and a source that delivers another rate raises a
-concise error via `onError` rather than degrading silently.
+converts natively) and its `start()` rejects, releasing the microphone, if
+the browser does not; `decodeAudioData` resamples decoded files to its
+context's rate as above. A custom `AudioSource` owns the same contract:
+deliver 16 kHz or reject from `start()`.
 
 Options are denominated in seconds and mean the same thing across providers
 (`speechThreshold`, `smoothWindowSec`, `riseDelaySec`, `fallDelaySec`,

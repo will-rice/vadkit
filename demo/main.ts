@@ -111,16 +111,16 @@ function callbacksFor(name: string): {
  * consumers stopped.
  */
 function teeSource(source: AudioSource, count: number): AudioSource[] {
-  const listeners: ((pcm: Float32Array, sampleRate: number) => void)[] = [];
+  const listeners: ((pcm: Float32Array) => void)[] = [];
   let started = 0;
   let stopped = 0;
   return Array.from({ length: count }, () => ({
-    async start(onChunk: (pcm: Float32Array, sampleRate: number) => void): Promise<void> {
+    async start(onChunk: (pcm: Float32Array) => void): Promise<void> {
       listeners.push(onChunk);
       started += 1;
       if (started === count) {
-        await source.start((pcm, sampleRate) => {
-          for (const listener of listeners) listener(pcm, sampleRate);
+        await source.start((pcm) => {
+          for (const listener of listeners) listener(pcm);
         });
       }
     },

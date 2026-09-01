@@ -35,3 +35,22 @@ test("start() can be called again after stop()", async () => {
   await source.start(() => undefined);
   await source.stop();
 });
+
+test("start() rejects when the browser does not honor 16 kHz, instead of delivering it", async () => {
+  // A real AudioContext that ignores the requested rate, as a browser that
+  // cannot open the device at 16 kHz would.
+  const Native = AudioContext;
+  class Fixed48k extends Native {
+    constructor() {
+      super({ sampleRate: 48000 });
+    }
+  }
+  globalThis.AudioContext = Fixed48k;
+  try {
+    const chunks: Float32Array[] = [];
+    await expect(micSource().start((pcm) => chunks.push(pcm))).rejects.toThrow(/16 kHz/);
+    expect(chunks).toHaveLength(0);
+  } finally {
+    globalThis.AudioContext = Native;
+  }
+});

@@ -9,3 +9,4 @@ coverage/
 .env.*
 .DS_Store
 .vitest-attachments/
+tests/browser/__screenshots__/
