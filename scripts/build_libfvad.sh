@@ -31,7 +31,7 @@ emcc \
   -sEXPORT_ES6=1 \
   -sEXPORT_NAME=createFvadModule \
   -sSINGLE_FILE=1 \
-  -sENVIRONMENT=web,worker,node \
+  -sENVIRONMENT=web,worker \
   -sFILESYSTEM=0 \
   -sALLOW_MEMORY_GROWTH=0 \
   -sEXPORTED_FUNCTIONS=_fvad_new,_fvad_free,_fvad_reset,_fvad_set_mode,_fvad_set_sample_rate,_fvad_process,_malloc,_free \
