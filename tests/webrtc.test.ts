@@ -1,22 +1,11 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
 import { expect, test } from "vite-plus/test";
 
 import { createVad } from "#index.ts";
 import { webrtcVad } from "#providers/webrtc.ts";
 
-import { readWav16kMono } from "./wav.ts";
+import { loadFixture, loadPcm } from "./helpers.ts";
 
-const HERE = path.dirname(fileURLToPath(import.meta.url));
-
-function loadPcm(): Float32Array {
-  const buf = readFileSync(path.join(HERE, "assets", "hello_en.wav"));
-  return readWav16kMono(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
-}
-
-const fixture = JSON.parse(readFileSync(path.join(HERE, "fixtures", "webrtc.json"), "utf-8")) as {
+const fixture = loadFixture("webrtc.json") as {
   wav: string;
   frameMs: number;
   modes: Record<string, number[]>;

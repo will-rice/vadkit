@@ -1,28 +1,16 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
 import { expect, test } from "vite-plus/test";
 
 import { createVad } from "#index.ts";
 import { fireRedVad } from "#providers/fireredvad.ts";
 import { sileroVad } from "#providers/silero.ts";
 
-import { readWav16kMono } from "./wav.ts";
-
-const HERE = path.dirname(fileURLToPath(import.meta.url));
+import { loadModel, loadPcm } from "./helpers.ts";
 
 test("both providers agree the utterance starts around 0.3 s", async () => {
-  const buf = readFileSync(path.join(HERE, "assets", "hello_en.wav"));
-  const pcm = readWav16kMono(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
-
+  const pcm = loadPcm();
   const factories = {
-    fireRedVad: fireRedVad({
-      model: readFileSync(path.join(HERE, "..", "models", "fireredvad_stream_vad_e2e.onnx")),
-    }),
-    sileroVad: sileroVad({
-      model: readFileSync(path.join(HERE, "..", "models", "silero_vad.onnx")),
-    }),
+    fireRedVad: fireRedVad({ model: loadModel("fireredvad_stream_vad_e2e.onnx") }),
+    sileroVad: sileroVad({ model: loadModel("silero_vad.onnx") }),
   };
   for (const [name, factory] of Object.entries(factories)) {
     const starts: number[] = [];
@@ -38,18 +26,10 @@ test("both providers agree the utterance starts around 0.3 s", async () => {
 });
 
 test("concurrent processChunk across ONNX providers is serialized safely", async () => {
-  const buf = readFileSync(path.join(HERE, "assets", "hello_en.wav"));
-  const pcm = readWav16kMono(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
-
+  const pcm = loadPcm();
   const [fireRed, silero] = await Promise.all([
-    createVad(
-      fireRedVad({
-        model: readFileSync(path.join(HERE, "..", "models", "fireredvad_stream_vad_e2e.onnx")),
-      }),
-    ),
-    createVad(
-      sileroVad({ model: readFileSync(path.join(HERE, "..", "models", "silero_vad.onnx")) }),
-    ),
+    createVad(fireRedVad({ model: loadModel("fireredvad_stream_vad_e2e.onnx") })),
+    createVad(sileroVad({ model: loadModel("silero_vad.onnx") })),
   ]);
   // Interleave un-awaited chunks across both providers, like an app driving
   // two VADs from one AudioWorklet callback.

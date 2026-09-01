@@ -1,27 +1,18 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
 import { expect, test } from "vite-plus/test";
 
 import { createVad } from "#index.ts";
 import { sileroVad } from "#providers/silero.ts";
 
-import { readWav16kMono } from "./wav.ts";
-
-const HERE = path.dirname(fileURLToPath(import.meta.url));
+import { loadFixture, loadModel, loadPcm } from "./helpers.ts";
 
 test("matches the silero-vad package frame by frame", async () => {
-  const fixture = JSON.parse(readFileSync(path.join(HERE, "fixtures", "silero.json"), "utf-8")) as {
+  const fixture = loadFixture("silero.json") as {
     wav: string;
     windowSamples: number;
     probs: number[];
   };
-  const model = readFileSync(path.join(HERE, "..", "models", "silero_vad.onnx"));
-  const vad = await createVad(sileroVad({ model }));
-
-  const buf = readFileSync(path.join(HERE, "assets", "hello_en.wav"));
-  const pcm = readWav16kMono(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
+  const vad = await createVad(sileroVad({ model: loadModel("silero_vad.onnx") }));
+  const pcm = loadPcm();
 
   const frames = [];
   for (let i = 0; i < pcm.length; i += 700) {
@@ -38,8 +29,7 @@ test("matches the silero-vad package frame by frame", async () => {
 });
 
 test("dispose releases the ONNX session", async () => {
-  const model = readFileSync(path.join(HERE, "..", "models", "silero_vad.onnx"));
-  const vad = await createVad(sileroVad({ model }));
+  const vad = await createVad(sileroVad({ model: loadModel("silero_vad.onnx") }));
   await vad.processChunk(new Float32Array(1024));
   await vad.dispose();
 });

@@ -4,31 +4,7 @@ import { createVad } from "#index.ts";
 import type { AudioSource, Utterance, VadOptions, VadSessionCallbacks } from "#index.ts";
 import type { VadProvider } from "#types.ts";
 
-/** Deterministic fake: probability = mean(|samples|) of each frame's window. */
-function fakeProvider(windowSamples = 400, hopSamples = 160): VadProvider {
-  return {
-    windowSamples,
-    hopSamples,
-    frameSec: hopSamples / 16000,
-    process(samples: Float32Array): Promise<Float32Array> {
-      const n = Math.floor((samples.length - windowSamples) / hopSamples) + 1;
-      const probs = new Float32Array(n);
-      for (let t = 0; t < n; t++) {
-        const window = samples.subarray(t * hopSamples, t * hopSamples + windowSamples);
-        let sum = 0;
-        for (const v of window) sum += Math.abs(v);
-        probs[t] = Math.min(1, sum / windowSamples);
-      }
-      return Promise.resolve(probs);
-    },
-    reset(): void {
-      // stateless
-    },
-    dispose(): Promise<void> {
-      return Promise.resolve();
-    },
-  };
-}
+import { fakeProvider } from "./helpers.ts";
 
 function fakeSource(pcm: Float32Array, sampleRate: number, chunkSize: number): AudioSource {
   return {
