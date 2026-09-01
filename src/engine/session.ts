@@ -172,14 +172,10 @@ export async function createVad(
   const { onFrame, onSpeechStart, onSpeechEnd, onError, ...opts } = options;
   // Drop explicitly-undefined overrides so they cannot clobber defaults
   // (plain-JS consumers get no exactOptionalPropertyTypes check).
-  const overrides: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(opts as Record<string, unknown>)) {
-    if (value !== undefined) overrides[key] = value;
-  }
+  const overrides = Object.fromEntries(
+    Object.entries<unknown>(opts).filter(([, value]) => value !== undefined),
+  ) as Partial<VadOptions>;
   const provider = await factory();
-  const stream = new VadStream(provider, {
-    ...DEFAULT_VAD_OPTIONS,
-    ...(overrides as Partial<VadOptions>),
-  });
+  const stream = new VadStream(provider, { ...DEFAULT_VAD_OPTIONS, ...overrides });
   return new VadSession(stream, { onFrame, onSpeechStart, onSpeechEnd, onError });
 }
