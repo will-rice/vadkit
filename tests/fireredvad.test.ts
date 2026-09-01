@@ -1,30 +1,13 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
 import { expect, test } from "vite-plus/test";
 
 import { createVad } from "#index.ts";
 import { fireRedVad } from "#providers/fireredvad.ts";
 
-import { readWav16kMono } from "./wav.ts";
-
-const HERE = path.dirname(fileURLToPath(import.meta.url));
-
-function loadPcm(): Float32Array {
-  const buf = readFileSync(path.join(HERE, "assets", "hello_en.wav"));
-  return readWav16kMono(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
-}
-
-function loadModel(): Uint8Array {
-  return readFileSync(path.join(HERE, "..", "models", "fireredvad_stream_vad_e2e.onnx"));
-}
+import { loadFixture, loadPcm, loadModel } from "./helpers.ts";
 
 test("matches the FireRedVAD Python pipeline frame by frame", async () => {
-  const fixture = JSON.parse(
-    readFileSync(path.join(HERE, "fixtures", "fireredvad.json"), "utf-8"),
-  ) as { wav: string; probs: number[] };
-  const vad = await createVad(fireRedVad({ model: loadModel() }));
+  const fixture = loadFixture("fireredvad.json") as { wav: string; probs: number[] };
+  const vad = await createVad(fireRedVad({ model: loadModel("fireredvad_stream_vad_e2e.onnx") }));
 
   const pcm = loadPcm();
   const frames = [];
@@ -44,7 +27,7 @@ test("matches the FireRedVAD Python pipeline frame by frame", async () => {
 test("detects the utterance with default options", async () => {
   const starts: number[] = [];
   const ends: number[] = [];
-  const vad = await createVad(fireRedVad({ model: loadModel() }), {
+  const vad = await createVad(fireRedVad({ model: loadModel("fireredvad_stream_vad_e2e.onnx") }), {
     speechThreshold: 0.4,
     onSpeechStart: (t) => starts.push(t),
     onSpeechEnd: (u) => ends.push(u.endTime),
