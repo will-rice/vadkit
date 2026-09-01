@@ -115,7 +115,7 @@ stateful `process(samples) → probabilities`, `reset`/`dispose`) — see
 The bundled models resolve via `new URL(..., import.meta.url)`, which
 Vite/webpack-5-class bundlers turn into hashed assets automatically — a
 plain install needs no configuration (verified against a packed tarball in
-a fresh Vite app). Without a bundler, or to self-host, pass an explicit
+a fresh Vite app and a fresh webpack 5 app). Without a bundler, or to self-host, pass an explicit
 location: `sileroVad({ model: "https://cdn.jsdelivr.net/npm/vadkit@<your-installed-version>/models/silero_vad.onnx" })`
 (pin the URL to the version you installed so model and runtime stay matched)
 (or bytes). onnxruntime-web ships its own wasm the same way; its default
