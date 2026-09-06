@@ -23,6 +23,7 @@ const info = document.getElementById("info") as HTMLParagraphElement;
 const toggle = document.getElementById("toggle") as HTMLButtonElement;
 const panelsRoot = document.getElementById("panels") as HTMLDivElement;
 const panels = new Map<string, Panel>();
+const frameCounts: Record<string, number> = {};
 
 function mustQuery<T extends Element>(root: ParentNode, selector: string, type: new () => T): T {
   const element = root.querySelector(selector);
@@ -86,6 +87,7 @@ function callbacksFor(name: string): {
 } {
   return {
     onFrame: (frame): void => {
+      frameCounts[name] = (frameCounts[name] ?? 0) + 1;
       const panel = panels.get(name);
       if (panel === undefined) return;
       panel.history.push(frame);
@@ -157,4 +159,5 @@ toggle.onclick = (): void => {
 (window as unknown as Record<string, unknown>).demo = {
   teeSource,
   sessions: { fireRedSession, sileroSession, webrtcSession },
+  frameCounts,
 };
