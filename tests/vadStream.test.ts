@@ -60,3 +60,12 @@ test("reset is ordered behind in-flight calls and restarts frame indexing", asyn
   const second = await vad.processChunk(new Float32Array(1000));
   expect(second.map((f) => f.index)).toEqual(first.map((f) => f.index));
 });
+
+test("use after dispose rejects with a concise error", async () => {
+  const vad = await createVad(() => Promise.resolve(fakeProvider()), OPTS);
+  await vad.dispose();
+  expect(vad.stream.disposed).toBe(true);
+  await expect(vad.stream.processChunk(new Float32Array(1000))).rejects.toThrow("stream disposed");
+  await expect(vad.stream.flush()).rejects.toThrow("stream disposed");
+  await expect(vad.stream.reset()).rejects.toThrow("stream disposed");
+});
