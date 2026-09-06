@@ -5,7 +5,13 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import tseslint from "typescript-eslint";
 
 export default defineConfig([
-  globalIgnores(["dist/**", "coverage/**", "models/**", "src/providers/libfvad/fvad.js"]),
+  globalIgnores([
+    "dist/**",
+    "coverage/**",
+    "models/**",
+    "src/providers/libfvad/fvad.js",
+    "tests/packaging/**",
+  ]),
   {
     files: ["**/*.{ts,mts,mjs}"],
     extends: [

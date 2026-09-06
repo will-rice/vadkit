@@ -46,6 +46,7 @@
   },
   "scripts": {
     "build": "vp pack && publint && attw --pack --profile esm-only",
+    "check:packaging": "./scripts/check_packaging.sh",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.build.json --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

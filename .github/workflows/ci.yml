@@ -45,3 +45,22 @@ jobs:
           node-version: 22
           package-manager-cache: false
       - run: node node_modules/.bin/vp test run --project node
+
+  packaging:
+    name: packaging (consumer builds, Node import, CDN)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # Node 22 first, so its binary is on disk for the import check below.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - run: echo "EXTRA_NODE=$(command -v node)" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run check:packaging
