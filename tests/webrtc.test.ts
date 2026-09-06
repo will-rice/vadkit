@@ -5,7 +5,7 @@ import { webrtcVad } from "#providers/webrtc.ts";
 
 import { loadFixture, loadPcm } from "./helpers.ts";
 
-const fixture = loadFixture("webrtc.json") as {
+const fixture = (await loadFixture("webrtc.json")) as {
   wav: string;
   frameMs: number;
   modes: Record<string, number[]>;
@@ -18,7 +18,7 @@ for (const mode of [0, 1, 2, 3] as const) {
     if (expected === undefined) return;
 
     const vad = await createVad(webrtcVad({ aggressiveness: mode }));
-    const pcm = loadPcm();
+    const pcm = await loadPcm();
     const frames = [];
     for (let i = 0; i < pcm.length; i += 700) {
       // deliberately not a multiple of the 160-sample frame
@@ -37,7 +37,7 @@ test("binary decisions drive the segmenter through smoothing", async () => {
     speechThreshold: 0.5,
     onSpeechStart: (t) => starts.push(t),
   });
-  await vad.processChunk(loadPcm());
+  await vad.processChunk(await loadPcm());
   expect(starts.length).toBeGreaterThanOrEqual(1);
   const start = starts[0] ?? NaN;
   expect(start).toBeGreaterThanOrEqual(0.0);
@@ -50,7 +50,7 @@ test("reset restores initial state bit-exactly", async () => {
   if (expected === undefined) return;
 
   const vad = await createVad(webrtcVad({ aggressiveness: 3 }));
-  const pcm = loadPcm();
+  const pcm = await loadPcm();
   const first = (await vad.processChunk(pcm)).map((f) => f.probability);
   await vad.reset();
   const second = (await vad.processChunk(pcm)).map((f) => f.probability);
@@ -60,7 +60,7 @@ test("reset restores initial state bit-exactly", async () => {
 
 test("20 ms frames use 320-sample geometry", async () => {
   const vad = await createVad(webrtcVad({ aggressiveness: 2, frameMs: 20 }));
-  const frames = await vad.processChunk(loadPcm());
+  const frames = await vad.processChunk(await loadPcm());
   expect(frames.length).toBe(112); // 35840 / 320
   expect(vad.stream.provider.hopSamples).toBe(320);
   expect(vad.stream.provider.frameSec).toBeCloseTo(0.02, 9);
@@ -68,6 +68,6 @@ test("20 ms frames use 320-sample geometry", async () => {
 
 test("dispose frees the wasm instance and frame buffer", async () => {
   const vad = await createVad(webrtcVad());
-  await vad.processChunk(loadPcm());
+  await vad.processChunk(await loadPcm());
   await vad.dispose(); // must not throw; frees _fvad_new + _malloc allocations
 });

@@ -1,10 +1,20 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
 import type { VadProvider } from "#types.ts";
 
-const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+// Both Vitest projects run these files: under Node import.meta.url is a
+// file: URL, in Chromium it is the dev-server URL, and new URL() resolves
+// relative to either. Only the read differs.
+const IS_NODE = typeof window === "undefined";
+
+async function readBytes(url: URL): Promise<ArrayBuffer> {
+  if (IS_NODE) {
+    const { readFile } = await import("node:fs/promises");
+    const buf = await readFile(url);
+    return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+  }
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`${url.href}: HTTP ${response.status}`);
+  return response.arrayBuffer();
+}
 
 /** Minimal WAV reader for 16 kHz 16-bit mono PCM test assets. */
 export function readWav16kMono(buffer: ArrayBuffer): Float32Array {
@@ -43,19 +53,26 @@ export function readWav16kMono(buffer: ArrayBuffer): Float32Array {
 }
 
 /** tests/assets/hello_en.wav as 16 kHz float PCM (2.24 s, speech ~0.3-1.8 s). */
-export function loadPcm(): Float32Array {
-  const buf = readFileSync(path.join(ROOT, "tests", "assets", "hello_en.wav"));
-  return readWav16kMono(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
-}
-
-/** Bytes of a bundled model, so tests never depend on import.meta.url resolution. */
-export function loadModel(name: "fireredvad_stream_vad_e2e.onnx" | "silero_vad.onnx"): Uint8Array {
-  return readFileSync(path.join(ROOT, "models", name));
+export async function loadPcm(): Promise<Float32Array> {
+  return readWav16kMono(await readBytes(new URL("./assets/hello_en.wav", import.meta.url)));
 }
 
 /** A parity fixture from tests/fixtures; the caller asserts its shape. */
-export function loadFixture(name: string): unknown {
-  return JSON.parse(readFileSync(path.join(ROOT, "tests", "fixtures", name), "utf-8"));
+export async function loadFixture(name: string): Promise<unknown> {
+  const bytes = await readBytes(new URL(`./fixtures/${name}`, import.meta.url));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+/**
+ * Model bytes under Node, where ort cannot fetch a file: URL. In the
+ * browser returns undefined so the provider resolves its bundled model via
+ * import.meta.url — the path a consumer's bundler has to get right.
+ */
+export async function loadModel(
+  name: "fireredvad_stream_vad_e2e.onnx" | "silero_vad.onnx",
+): Promise<Uint8Array | undefined> {
+  if (!IS_NODE) return undefined;
+  return new Uint8Array(await readBytes(new URL(`../models/${name}`, import.meta.url)));
 }
 
 /** Deterministic fake: probability = mean(|samples|) of each frame's window. */

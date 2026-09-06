@@ -4,8 +4,8 @@ import { encodeWav } from "#wav.ts";
 
 import { loadPcm, readWav16kMono } from "./helpers.ts";
 
-test("reads hello_en.wav as 16 kHz mono float PCM", () => {
-  const pcm = loadPcm();
+test("reads hello_en.wav as 16 kHz mono float PCM", async () => {
+  const pcm = await loadPcm();
   expect(pcm.length).toBe(35840); // 2.24 s at 16 kHz
   expect(Math.max(...pcm)).toBeLessThanOrEqual(1);
   expect(Math.min(...pcm)).toBeGreaterThanOrEqual(-1);
