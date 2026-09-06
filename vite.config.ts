@@ -10,6 +10,15 @@ export default defineConfig({
   optimizeDeps: { exclude: ["onnxruntime-web"] },
   test: {
     testTimeout: 60000,
+    // Merged across both projects by the v8 provider. Thresholds sit two
+    // points under the baseline measured when they were introduced, so a
+    // dropped test fails the build without making the numbers a target.
+    coverage: {
+      provider: "v8",
+      include: ["src/**"],
+      exclude: ["src/providers/libfvad/**"],
+      thresholds: { statements: 95, branches: 87, functions: 98, lines: 96 },
+    },
     // Engine and provider suites run in Node; tests/browser runs in real
     // Chromium so the AudioContext + AudioWorklet capture path (which no
     // Node fake can stand in for) is gated like everything else.
