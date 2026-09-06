@@ -2,6 +2,7 @@ import { expect, test } from "vite-plus/test";
 
 import { createVad } from "#index.ts";
 import { fireRedVad } from "#providers/fireredvad.ts";
+import { fsmnVad } from "#providers/fsmn.ts";
 import { sileroVad } from "#providers/silero.ts";
 import { webrtcVad } from "#providers/webrtc.ts";
 import type { ProviderFactory } from "#types.ts";
@@ -12,6 +13,7 @@ const pcm = await loadPcm();
 const PROVIDERS: Record<string, ProviderFactory> = {
   fireRedVad: fireRedVad({ model: await loadModel("fireredvad_stream_vad_e2e.onnx") }),
   sileroVad: sileroVad({ model: await loadModel("silero_vad.onnx") }),
+  fsmnVad: fsmnVad({ model: await loadModel("fsmn_vad_e2e.onnx") }),
   webrtcVad: webrtcVad(),
 };
 

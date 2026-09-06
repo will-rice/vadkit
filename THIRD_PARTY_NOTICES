@@ -58,3 +58,17 @@ models/silero_vad.onnx
 Source: Silero VAD v5.1.2 (https://github.com/snakers4/silero-vad)
 License: MIT
 sha256: 2623a2953f6ff3d2c1e61740c6cdb7168133479b267dfef114a4a3cc5bdd788f
+
+---------------------------------------------------------------------------
+models/fsmn_vad_e2e.onnx
+---------------------------------------------------------------------------
+Source: FSMN-VAD (https://huggingface.co/funasr/fsmn-vad-onnx), from
+  FunASR (https://github.com/modelscope/FunASR)
+License: Apache-2.0
+Build: scripts/export_fsmn_vad_e2e.py (in the source repository)
+Notes: upstream's published model.onnx merged unmodified behind a Kaldi
+  fbank + LFR + CMVN feature frontend built as an ONNX graph, so the model
+  takes PCM directly. The frontend's CMVN statistics come from upstream's
+  vad.mvn. The 248-way monophone posteriors are reduced in-graph to
+  1 - P(silence), as FunASR reads them.
+sha256: e43854411306551eb527209e199d28f7d5d70c80ba026b7b84e8ccbabc22ce03
