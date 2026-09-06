@@ -1,5 +1,5 @@
-import { createVad, micSource } from "#index.ts";
-import type { AudioSource, Utterance, VadFrame } from "#index.ts";
+import { createVad, micSource, teeSource } from "#index.ts";
+import type { Utterance, VadFrame } from "#index.ts";
 import { fireRedVad } from "#providers/fireredvad.ts";
 import { sileroVad } from "#providers/silero.ts";
 import { webrtcVad } from "#providers/webrtc.ts";
@@ -103,37 +103,6 @@ function callbacksFor(name: string): {
       panel.utterances.textContent = panel.segments.join("  |  ");
     },
   };
-}
-
-/**
- * Split one AudioSource into n AudioSources sharing its start/stop: the
- * underlying source starts once all consumers started and stops once all
- * consumers stopped.
- */
-function teeSource(source: AudioSource, count: number): AudioSource[] {
-  const listeners: ((pcm: Float32Array) => void)[] = [];
-  let started = 0;
-  let stopped = 0;
-  return Array.from({ length: count }, () => ({
-    async start(onChunk: (pcm: Float32Array) => void): Promise<void> {
-      listeners.push(onChunk);
-      started += 1;
-      if (started === count) {
-        await source.start((pcm) => {
-          for (const listener of listeners) listener(pcm);
-        });
-      }
-    },
-    async stop(): Promise<void> {
-      stopped += 1;
-      if (stopped === count) {
-        started = 0;
-        stopped = 0;
-        listeners.length = 0;
-        await source.stop();
-      }
-    },
-  }));
 }
 
 const fireRedSession = await createVad(fireRedVad({ model: fireRedModelUrl }), {

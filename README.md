@@ -56,7 +56,9 @@ await vad.dispose(); // releases the model/wasm resources when done for good
 ```
 
 `encodeWav(utterance.audio)` turns an utterance into a 16-bit PCM WAV
-`ArrayBuffer`, ready to upload to an ASR API.
+`ArrayBuffer`, ready to upload to an ASR API. `teeSource(micSource(), n)`
+splits one microphone across `n` sessions sharing its lifecycle (the demo
+runs three providers on one mic this way).
 
 Or feed PCM yourself — chunks of any length, from any source:
 
@@ -163,6 +165,7 @@ configures the dev server, tests, and library packaging.
 ```sh
 npm test           # vp test: engine unit tests, per-provider parity fixtures,
                    # and the browser capture suite (--project node skips it)
+npm run coverage   # npm test + v8 coverage across both projects, thresholds enforced
 npm run typecheck  # strict tsc, package and demo configs
 npm run lint       # eslint (type-aware, strictTypeChecked)
 npm run format     # vp fmt (oxfmt; config in .oxfmtrc.json)
