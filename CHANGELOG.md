@@ -1,3 +1,9 @@
+## [0.4.0](https://github.com/will-rice/vadkit/compare/v0.3.0...v0.4.0) (2026-09-06)
+
+### Features
+
+- **providers:** add FSMN-VAD as a fourth provider ([5fe0a9b](https://github.com/will-rice/vadkit/commit/5fe0a9bddb89bcae9b8c038d729da32dbe780d4e))
+
 ## [0.3.0](https://github.com/will-rice/vadkit/compare/v0.2.1...v0.3.0) (2026-09-06)
 
 ### ⚠ BREAKING CHANGES
