@@ -14,6 +14,7 @@ test("the root entry exports exactly the documented API", () => {
       "createVad",
       "encodeWav",
       "micSource",
+      "teeSource",
     ].sort(),
   );
 });

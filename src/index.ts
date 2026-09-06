@@ -5,6 +5,7 @@ export type { AudioSource, Utterance, VadSessionCallbacks } from "#engine/sessio
 export { VadStream } from "#engine/vadStream.ts";
 export { micSource } from "#micSource.ts";
 export type { MicSourceOptions } from "#micSource.ts";
+export { teeSource } from "#teeSource.ts";
 export { SAMPLE_RATE } from "#types.ts";
 export type { ProviderFactory, VadProvider } from "#types.ts";
 export { encodeWav } from "#wav.ts";
