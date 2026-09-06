@@ -213,3 +213,27 @@ test("reset between un-awaited chunks restarts cleanly", async () => {
   const [first, , second] = await Promise.all([p1, resetDone, p2]);
   expect(second.map((f) => f.index)).toEqual(first.map((f) => f.index));
 });
+
+test("a provider failure reaches onError and later chunks still process", async () => {
+  const good = fakeProvider();
+  let calls = 0;
+  const flaky: VadProvider = {
+    ...good,
+    process(samples: Float32Array): Promise<Float32Array> {
+      calls += 1;
+      return calls === 1 ? Promise.reject(new Error("model exploded")) : good.process(samples);
+    },
+  };
+  const errors: unknown[] = [];
+  const frames: number[] = [];
+  const vad = await createVad(() => Promise.resolve(flaky), {
+    ...OPTS,
+    onFrame: (f) => frames.push(f.index),
+    onError: (e) => errors.push(e),
+  });
+  await vad.start(fakeSource(new Float32Array(2000), 1000));
+  await vad.processChunk(new Float32Array(0)); // barrier: drain the serialized queue
+  expect(errors).toHaveLength(1);
+  expect(String(errors[0])).toMatch(/model exploded/);
+  expect(frames.length).toBeGreaterThan(0);
+});
