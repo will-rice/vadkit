@@ -167,6 +167,8 @@ npm run typecheck  # strict tsc, package and demo configs
 npm run lint       # eslint (type-aware, strictTypeChecked)
 npm run format     # vp fmt (oxfmt; config in .oxfmtrc.json)
 npm run build      # vp pack (tsdown) + publint + attw packaging checks
+npm run check:packaging  # pack the tarball, build Vite + webpack consumers,
+                         # import under Node, load unbundled behind an import map
 npm run demo       # vp dev demo
 ```
 
