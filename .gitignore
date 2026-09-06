@@ -10,3 +10,6 @@ coverage/
 .DS_Store
 .vitest-attachments/
 **/__screenshots__/
+
+# Claude Code (launch configs, local settings, worktrees)
+.claude/
