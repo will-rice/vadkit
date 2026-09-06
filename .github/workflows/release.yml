@@ -34,8 +34,10 @@ jobs:
           # npm think credentials are configured and skip the OIDC exchange
           # trusted publishing depends on (no NPM_TOKEN is set anywhere).
       - run: npm ci
-      # prepublishOnly runs typecheck, the parity suite, and the build
-      # (with publint + attw) before anything reaches the registry.
+      # prepublishOnly runs typecheck, the full suite (Node and Chromium
+      # projects), and the build (with publint + attw) before anything
+      # reaches the registry, so the browser must exist on this runner.
+      - run: npx playwright install --with-deps chromium
       - run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
