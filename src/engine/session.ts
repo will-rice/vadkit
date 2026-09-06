@@ -105,8 +105,9 @@ export class VadSession {
     });
   }
 
-  /** Stop and flush, then release the provider. Unusable afterwards. */
+  /** Stop and flush, then release the provider. Unusable afterwards; repeat calls are no-ops. */
   async dispose(): Promise<void> {
+    if (this.stream.disposed) return;
     await this.stop();
     await this.stream.dispose();
   }

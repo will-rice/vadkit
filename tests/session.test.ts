@@ -237,3 +237,20 @@ test("a provider failure reaches onError and later chunks still process", async 
   expect(String(errors[0])).toMatch(/model exploded/);
   expect(frames.length).toBeGreaterThan(0);
 });
+
+test("stop() and dispose() are safe without start() and when repeated", async () => {
+  let disposed = 0;
+  const provider: VadProvider = {
+    ...fakeProvider(),
+    dispose(): Promise<void> {
+      disposed += 1;
+      return Promise.resolve();
+    },
+  };
+  const vad = await createVad(() => Promise.resolve(provider), OPTS);
+  await vad.stop();
+  await vad.stop();
+  await vad.dispose();
+  await vad.dispose();
+  expect(disposed).toBe(1);
+});

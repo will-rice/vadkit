@@ -11,6 +11,7 @@ export class VadStream {
   private readonly buffer: ChunkBuffer;
   private readonly segmenter: Segmenter;
   private readonly queue = new SerialQueue();
+  private live = true;
 
   constructor(provider: VadProvider, options: VadOptions) {
     for (const [key, value] of Object.entries(options)) {
@@ -31,7 +32,10 @@ export class VadStream {
    * call resolves (e.g. from an AudioWorklet message handler) is safe.
    */
   processChunk(pcm: Float32Array): Promise<VadFrame[]> {
-    return this.queue.run(() => this.processContiguous(pcm));
+    return this.queue.run(() => {
+      this.assertLive();
+      return this.processContiguous(pcm);
+    });
   }
 
   /**
@@ -39,21 +43,41 @@ export class VadStream {
    * short to fill a provider window (under one hop) is not processed.
    */
   flush(): Promise<VadEvent[]> {
-    return this.queue.run(() => this.segmenter.flush());
+    return this.queue.run(() => {
+      this.assertLive();
+      return this.segmenter.flush();
+    });
   }
 
-  /** Release the provider's resources. The stream is unusable afterwards. */
+  /**
+   * Release the provider's resources. Every other method rejects with
+   * "stream disposed" afterwards; repeat calls are no-ops.
+   */
   dispose(): Promise<void> {
-    return this.queue.run(() => this.provider.dispose());
+    return this.queue.run(async () => {
+      if (!this.live) return;
+      this.live = false;
+      await this.provider.dispose();
+    });
+  }
+
+  /** True once dispose() has run. */
+  get disposed(): boolean {
+    return !this.live;
   }
 
   /** Start a new stream. Ordered behind in-flight processChunk calls. */
   reset(): Promise<void> {
     return this.queue.run(() => {
+      this.assertLive();
       this.buffer.reset();
       this.segmenter.reset();
       this.provider.reset();
     });
+  }
+
+  private assertLive(): void {
+    if (!this.live) throw new Error("stream disposed");
   }
 
   private async processContiguous(pcm: Float32Array): Promise<VadFrame[]> {
