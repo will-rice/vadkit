@@ -7,10 +7,10 @@ import { sileroVad } from "#providers/silero.ts";
 import { loadModel, loadPcm } from "./helpers.ts";
 
 test("both providers agree the utterance starts around 0.3 s", async () => {
-  const pcm = loadPcm();
+  const pcm = await loadPcm();
   const factories = {
-    fireRedVad: fireRedVad({ model: loadModel("fireredvad_stream_vad_e2e.onnx") }),
-    sileroVad: sileroVad({ model: loadModel("silero_vad.onnx") }),
+    fireRedVad: fireRedVad({ model: await loadModel("fireredvad_stream_vad_e2e.onnx") }),
+    sileroVad: sileroVad({ model: await loadModel("silero_vad.onnx") }),
   };
   for (const [name, factory] of Object.entries(factories)) {
     const starts: number[] = [];
@@ -26,10 +26,10 @@ test("both providers agree the utterance starts around 0.3 s", async () => {
 });
 
 test("concurrent processChunk across ONNX providers is serialized safely", async () => {
-  const pcm = loadPcm();
+  const pcm = await loadPcm();
   const [fireRed, silero] = await Promise.all([
-    createVad(fireRedVad({ model: loadModel("fireredvad_stream_vad_e2e.onnx") })),
-    createVad(sileroVad({ model: loadModel("silero_vad.onnx") })),
+    createVad(fireRedVad({ model: await loadModel("fireredvad_stream_vad_e2e.onnx") })),
+    createVad(sileroVad({ model: await loadModel("silero_vad.onnx") })),
   ]);
   // Interleave un-awaited chunks across both providers, like an app driving
   // two VADs from one AudioWorklet callback.

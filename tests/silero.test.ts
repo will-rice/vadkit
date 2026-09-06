@@ -6,13 +6,13 @@ import { sileroVad } from "#providers/silero.ts";
 import { loadFixture, loadModel, loadPcm } from "./helpers.ts";
 
 test("matches the silero-vad package frame by frame", async () => {
-  const fixture = loadFixture("silero.json") as {
+  const fixture = (await loadFixture("silero.json")) as {
     wav: string;
     windowSamples: number;
     probs: number[];
   };
-  const vad = await createVad(sileroVad({ model: loadModel("silero_vad.onnx") }));
-  const pcm = loadPcm();
+  const vad = await createVad(sileroVad({ model: await loadModel("silero_vad.onnx") }));
+  const pcm = await loadPcm();
 
   const frames = [];
   for (let i = 0; i < pcm.length; i += 700) {
@@ -29,7 +29,7 @@ test("matches the silero-vad package frame by frame", async () => {
 });
 
 test("dispose releases the ONNX session", async () => {
-  const vad = await createVad(sileroVad({ model: loadModel("silero_vad.onnx") }));
+  const vad = await createVad(sileroVad({ model: await loadModel("silero_vad.onnx") }));
   await vad.processChunk(new Float32Array(1024));
   await vad.dispose();
 });

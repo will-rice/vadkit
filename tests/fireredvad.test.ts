@@ -6,10 +6,12 @@ import { fireRedVad } from "#providers/fireredvad.ts";
 import { loadFixture, loadPcm, loadModel } from "./helpers.ts";
 
 test("matches the FireRedVAD Python pipeline frame by frame", async () => {
-  const fixture = loadFixture("fireredvad.json") as { wav: string; probs: number[] };
-  const vad = await createVad(fireRedVad({ model: loadModel("fireredvad_stream_vad_e2e.onnx") }));
+  const fixture = (await loadFixture("fireredvad.json")) as { wav: string; probs: number[] };
+  const vad = await createVad(
+    fireRedVad({ model: await loadModel("fireredvad_stream_vad_e2e.onnx") }),
+  );
 
-  const pcm = loadPcm();
+  const pcm = await loadPcm();
   const frames = [];
   for (let i = 0; i < pcm.length; i += 512) {
     frames.push(...(await vad.processChunk(pcm.subarray(i, i + 512))));
@@ -27,12 +29,15 @@ test("matches the FireRedVAD Python pipeline frame by frame", async () => {
 test("detects the utterance with default options", async () => {
   const starts: number[] = [];
   const ends: number[] = [];
-  const vad = await createVad(fireRedVad({ model: loadModel("fireredvad_stream_vad_e2e.onnx") }), {
-    speechThreshold: 0.4,
-    onSpeechStart: (t) => starts.push(t),
-    onSpeechEnd: (u) => ends.push(u.endTime),
-  });
-  await vad.processChunk(loadPcm());
+  const vad = await createVad(
+    fireRedVad({ model: await loadModel("fireredvad_stream_vad_e2e.onnx") }),
+    {
+      speechThreshold: 0.4,
+      onSpeechStart: (t) => starts.push(t),
+      onSpeechEnd: (u) => ends.push(u.endTime),
+    },
+  );
+  await vad.processChunk(await loadPcm());
   // Python pipeline reference for this clip: speech ~0.28-1.83 s.
   expect(starts).toHaveLength(1);
   expect(starts[0]).toBeGreaterThanOrEqual(0.1);
