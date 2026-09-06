@@ -55,6 +55,7 @@
     "test": "vp test run",
     "test:watch": "vp test",
     "coverage": "vp test run --coverage",
+    "bench": "vp test bench --project browser",
     "prepublishOnly": "npm run typecheck && npm test && npm run build",
     "prepare": "husky",
     "fixtures": "uv run scripts/generate_fireredvad_fixture.py && uv run scripts/generate_silero_fixture.py && uv run scripts/generate_webrtc_fixture.py",

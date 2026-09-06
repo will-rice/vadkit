@@ -166,6 +166,7 @@ configures the dev server, tests, and library packaging.
 npm test           # vp test: engine unit tests, per-provider parity fixtures,
                    # and the browser capture suite (--project node skips it)
 npm run coverage   # npm test + v8 coverage across both projects, thresholds enforced
+npm run bench      # per-provider throughput in Chromium; RTF = clip seconds / mean
 npm run typecheck  # strict tsc, package and demo configs
 npm run lint       # eslint (type-aware, strictTypeChecked)
 npm run format     # vp fmt (oxfmt; config in .oxfmtrc.json)
@@ -192,6 +193,13 @@ npm run fixtures   # parity fixtures, regenerated against reference
 
 Fixtures and the wasm module are committed, so neither tool is needed for
 normal development — only when changing what they generate.
+
+### Benchmarks
+
+`npm run bench` runs `tests/bench/providers.bench.ts` in headless Chromium:
+each provider processes the 2.24 s parity clip repeatedly, and the
+real-time factor is the clip length divided by the reported mean. Numbers
+are informational (they depend on the machine) and are not a CI gate.
 
 ## Releasing
 
