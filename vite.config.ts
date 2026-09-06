@@ -33,6 +33,7 @@ export default defineConfig({
           name: "browser",
           include: ["tests/*.test.ts", "tests/browser/*.test.ts"],
           exclude: ["tests/*.node.test.ts"],
+          benchmark: { include: ["tests/bench/*.bench.ts"] },
           browser: {
             enabled: true,
             headless: true,
