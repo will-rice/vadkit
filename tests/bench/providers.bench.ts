@@ -2,6 +2,7 @@ import { bench } from "vite-plus/test";
 
 import { createVad } from "#index.ts";
 import { fireRedVad } from "#providers/fireredvad.ts";
+import { fsmnVad } from "#providers/fsmn.ts";
 import { sileroVad } from "#providers/silero.ts";
 import { webrtcVad } from "#providers/webrtc.ts";
 
@@ -17,6 +18,7 @@ const sessions = {
     fireRedVad({ model: await loadModel("fireredvad_stream_vad_e2e.onnx") }),
   ),
   sileroVad: await createVad(sileroVad({ model: await loadModel("silero_vad.onnx") })),
+  fsmnVad: await createVad(fsmnVad({ model: await loadModel("fsmn_vad_e2e.onnx") })),
   webrtcVad: await createVad(webrtcVad()),
 };
 

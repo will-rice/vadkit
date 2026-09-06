@@ -69,7 +69,7 @@ export async function loadFixture(name: string): Promise<unknown> {
  * import.meta.url — the path a consumer's bundler has to get right.
  */
 export async function loadModel(
-  name: "fireredvad_stream_vad_e2e.onnx" | "silero_vad.onnx",
+  name: "fireredvad_stream_vad_e2e.onnx" | "silero_vad.onnx" | "fsmn_vad_e2e.onnx",
 ): Promise<Uint8Array | undefined> {
   if (!IS_NODE) return undefined;
   return new Uint8Array(await readBytes(new URL(`../models/${name}`, import.meta.url)));

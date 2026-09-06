@@ -6,7 +6,8 @@
 
 Multi-provider voice activity detection for the browser. One TypeScript API
 over multiple VAD models — [FireRedVAD](https://github.com/FireRedTeam/FireRedVAD),
-[Silero VAD](https://github.com/snakers4/silero-vad), and WebRTC VAD — with
+[Silero VAD](https://github.com/snakers4/silero-vad),
+[FSMN-VAD](https://huggingface.co/funasr/fsmn-vad-onnx), and WebRTC VAD — with
 a batteries-included session layer: microphone capture,
 speech start/end events, and the utterance's raw audio handed to you on speech
 end, ready for ASR.
@@ -27,7 +28,7 @@ npm install vadkit onnxruntime-web
 ```
 
 `onnxruntime-web` is a required peer dependency (npm installs it
-automatically) — the FireRedVAD and Silero models are ONNX. Models ship
+automatically) — the FireRedVAD, Silero and FSMN-VAD models are ONNX. Models ship
 inside the package under `models/`. Apps using only the WebRTC provider
 still bundle ort-free: the subpath entries are isolated, so bundlers
 tree-shake onnxruntime-web out entirely (verified: a webrtc-only consumer
@@ -58,7 +59,7 @@ await vad.dispose(); // releases the model/wasm resources when done for good
 `encodeWav(utterance.audio)` turns an utterance into a 16-bit PCM WAV
 `ArrayBuffer`, ready to upload to an ASR API. `teeSource(micSource(), n)`
 splits one microphone across `n` sessions sharing its lifecycle (the demo
-runs three providers on one mic this way).
+runs four providers on one mic this way).
 
 Or feed PCM yourself — chunks of any length, from any source:
 
@@ -95,10 +96,23 @@ Options are denominated in seconds and mean the same thing across providers
 | ---------- | ------------------- | ---------- | ------ | ------------------------- | ------------ |
 | FireRedVAD | `vadkit/fireredvad` | 400 / 160  | 10 ms  | 3.3 MB (PCM-in)           | Apache-2.0   |
 | Silero v5  | `vadkit/silero`     | 512 / 512  | 32 ms  | 2.3 MB                    | MIT          |
+| FSMN-VAD   | `vadkit/fsmn`       | 1040 / 160 | 10 ms  | 2.6 MB (PCM-in)           | Apache-2.0   |
 | WebRTC VAD | `vadkit/webrtc`     | 160 / 160* | 10 ms* | none (29 KB wasm inlined) | BSD-3-Clause |
 
-All consume raw 16 kHz PCM; the FireRedVAD model has its fbank+CMVN feature
-frontend inside the ONNX graph. Third-party licenses, model provenance, and hashes: `THIRD_PARTY_NOTICES`.
+All consume raw 16 kHz PCM; the FireRedVAD and FSMN-VAD models have their
+feature frontends inside the ONNX graph. Third-party licenses, model
+provenance, and hashes: `THIRD_PARTY_NOTICES`.
+
+FSMN-VAD (FunASR's DFSMN model) needs a 1040-sample window for a 160-sample
+hop because each output frame stacks five consecutive 25 ms fbank frames
+(FunASR's LFR, `m=5 n=1`). Its probabilities run hot on non-speech — FunASR
+reads them against 0.6 rather than 0.5 — so raise `speechThreshold` to
+around 0.7 if onsets trigger early. Two further consequences of running an
+offline model causally: vadkit omits FunASR's LFR edge padding, so vadkit's
+frame _k_ is FunASR's frame _k+2_, and the two padded frames FunASR starts
+with perturb its output for one DFSMN receptive field — 4 layers × 19
+frames = 0.76 s — after which the two agree to float32 noise. The parity
+fixture pins both properties.
 
 \*WebRTC VAD (the classic GMM VAD, via a vendored
 [libfvad](https://github.com/dpirch/libfvad) wasm build — no
@@ -130,7 +144,7 @@ backend is single-threaded and rejects overlapping runs otherwise).
 ## Demo
 
 Live at [will-rice.github.io/vadkit](https://will-rice.github.io/vadkit/) —
-all three providers side by side on one mic feed (audio never leaves the
+all four providers side by side on one mic feed (audio never leaves the
 page). Or locally:
 
 ```sh
@@ -187,12 +201,14 @@ coverage matches typescript-eslint's strictTypeChecked.
 ```sh
 npm run fixtures   # parity fixtures, regenerated against reference
                    # implementations (needs uv: https://docs.astral.sh/uv/)
+npm run models     # re-export models/fsmn_vad_e2e.onnx from upstream's
+                   # published graph plus an in-graph feature frontend
 ./scripts/build_libfvad.sh   # rebuild the vendored libfvad wasm
                              # (needs emscripten + git; pinned revision)
 ```
 
-Fixtures and the wasm module are committed, so neither tool is needed for
-normal development — only when changing what they generate.
+Fixtures, models and the wasm module are committed, so none of these tools
+are needed for normal development — only when changing what they generate.
 
 ### Benchmarks
 

@@ -1,18 +1,50 @@
 import { createVad, micSource, teeSource } from "#index.ts";
 import type { Utterance, VadFrame } from "#index.ts";
 import { fireRedVad } from "#providers/fireredvad.ts";
+import { fsmnVad } from "#providers/fsmn.ts";
 import { sileroVad } from "#providers/silero.ts";
 import { webrtcVad } from "#providers/webrtc.ts";
 
 import fireRedModelUrl from "../models/fireredvad_stream_vad_e2e.onnx?url";
+import fsmnModelUrl from "../models/fsmn_vad_e2e.onnx?url";
 import sileroModelUrl from "../models/silero_vad.onnx?url";
 
 const HISTORY_SEC = 8;
-const THRESHOLD = 0.4;
+const DEFAULT_THRESHOLD = 0.4;
+
+// FSMN-VAD sits near 0.5 on non-speech where the others fall to their floor;
+// FunASR reads it against 0.6, so it gets its own threshold here.
+const PROVIDERS = [
+  {
+    label: "FireRedVAD (10 ms)",
+    frameSec: 0.01,
+    speechThreshold: DEFAULT_THRESHOLD,
+    factory: fireRedVad({ model: fireRedModelUrl }),
+  },
+  {
+    label: "Silero VAD (32 ms)",
+    frameSec: 0.032,
+    speechThreshold: DEFAULT_THRESHOLD,
+    factory: sileroVad({ model: sileroModelUrl }),
+  },
+  {
+    label: "FSMN-VAD (10 ms)",
+    frameSec: 0.01,
+    speechThreshold: 0.7,
+    factory: fsmnVad({ model: fsmnModelUrl }),
+  },
+  {
+    label: "WebRTC VAD (10 ms, mode 3)",
+    frameSec: 0.01,
+    speechThreshold: DEFAULT_THRESHOLD,
+    factory: webrtcVad({ aggressiveness: 3 }),
+  },
+];
 
 interface Panel {
   history: VadFrame[];
   maxFrames: number;
+  speechThreshold: number;
   segments: string[];
   canvas: HTMLCanvasElement;
   status: HTMLSpanElement;
@@ -31,7 +63,7 @@ function mustQuery<T extends Element>(root: ParentNode, selector: string, type: 
   return element;
 }
 
-function makePanel(name: string, frameSec: number): void {
+function makePanel(name: string, frameSec: number, speechThreshold: number): void {
   const root = document.createElement("div");
   root.className = "provider";
   root.innerHTML = `
@@ -42,6 +74,7 @@ function makePanel(name: string, frameSec: number): void {
   panels.set(name, {
     history: [],
     maxFrames: Math.round(HISTORY_SEC / frameSec),
+    speechThreshold,
     segments: [],
     canvas: mustQuery(root, "canvas", HTMLCanvasElement),
     status: mustQuery(root, ".status", HTMLSpanElement),
@@ -66,8 +99,8 @@ function draw(panel: Panel): void {
   ctx.strokeStyle = "#5a5f6a";
   ctx.setLineDash([6, 6]);
   ctx.beginPath();
-  ctx.moveTo(0, y(THRESHOLD));
-  ctx.lineTo(width, y(THRESHOLD));
+  ctx.moveTo(0, y(panel.speechThreshold));
+  ctx.lineTo(width, y(panel.speechThreshold));
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.strokeStyle = "#4f7cff";
@@ -107,21 +140,14 @@ function callbacksFor(name: string): {
   };
 }
 
-const fireRedSession = await createVad(fireRedVad({ model: fireRedModelUrl }), {
-  speechThreshold: THRESHOLD,
-  ...callbacksFor("FireRedVAD (10 ms)"),
-});
-const sileroSession = await createVad(sileroVad({ model: sileroModelUrl }), {
-  speechThreshold: THRESHOLD,
-  ...callbacksFor("Silero VAD (32 ms)"),
-});
-const webrtcSession = await createVad(webrtcVad({ aggressiveness: 3 }), {
-  speechThreshold: THRESHOLD,
-  ...callbacksFor("WebRTC VAD (10 ms, mode 3)"),
-});
-makePanel("FireRedVAD (10 ms)", 0.01);
-makePanel("Silero VAD (32 ms)", 0.032);
-makePanel("WebRTC VAD (10 ms, mode 3)", 0.01);
+const sessions = await Promise.all(
+  PROVIDERS.map(({ label, factory, speechThreshold }) =>
+    createVad(factory, { speechThreshold, ...callbacksFor(label) }),
+  ),
+);
+for (const { label, frameSec, speechThreshold } of PROVIDERS) {
+  makePanel(label, frameSec, speechThreshold);
+}
 
 info.textContent = "Models loaded. Audio never leaves this page.";
 toggle.disabled = false;
@@ -132,20 +158,19 @@ toggle.onclick = (): void => {
     if (running) {
       running = false;
       toggle.textContent = "Start microphone";
-      await fireRedSession.stop();
-      await sileroSession.stop();
-      await webrtcSession.stop(); // last tee stop stops the mic
+      // The mic stops once every session has released its tee.
+      for (const session of sessions) await session.stop();
       return;
     }
     toggle.disabled = true;
     try {
-      const [teeA, teeB, teeC] = teeSource(micSource(), 3);
-      if (teeA === undefined || teeB === undefined || teeC === undefined) {
-        throw new Error("teeSource returned too few");
+      const tees = teeSource(micSource(), sessions.length);
+      // The mic opens on the last start, once every tee has a consumer.
+      for (const [i, session] of sessions.entries()) {
+        const tee = tees[i];
+        if (tee === undefined) throw new Error("teeSource returned too few");
+        await session.start(tee);
       }
-      await fireRedSession.start(teeA);
-      await sileroSession.start(teeB);
-      await webrtcSession.start(teeC); // this one actually opens the mic
       running = true;
       toggle.textContent = "Stop microphone";
     } finally {
@@ -158,6 +183,6 @@ toggle.onclick = (): void => {
 // routed through a MediaStreamDestination wrapped as an AudioSource).
 (window as unknown as Record<string, unknown>).demo = {
   teeSource,
-  sessions: { fireRedSession, sileroSession, webrtcSession },
+  sessions: Object.fromEntries(PROVIDERS.map(({ label }, i) => [label, sessions[i]])),
   frameCounts,
 };

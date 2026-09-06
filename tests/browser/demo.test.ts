@@ -1,5 +1,7 @@
 import { expect, test } from "vite-plus/test";
 
+const PROVIDER_COUNT = 4;
+
 interface DemoSeam {
   frameCounts: Record<string, number>;
 }
@@ -16,7 +18,7 @@ function waitFor(predicate: () => boolean, timeoutMs = 15000): Promise<void> {
   });
 }
 
-test("the demo runs all three providers on one microphone and stops cleanly", async () => {
+test("the demo runs every provider on one microphone and stops cleanly", async () => {
   document.body.innerHTML = `
     <p id="info"></p>
     <button id="toggle" disabled>Start microphone</button>
@@ -24,11 +26,13 @@ test("the demo runs all three providers on one microphone and stops cleanly", as
   await import("../../demo/main.ts"); // loads the models, enables the toggle
   const toggle = document.getElementById("toggle") as HTMLButtonElement;
   expect(toggle.disabled).toBe(false);
-  expect(document.querySelectorAll(".provider")).toHaveLength(3);
+  expect(document.querySelectorAll(".provider")).toHaveLength(PROVIDER_COUNT);
 
   const seam = (window as unknown as { demo: DemoSeam }).demo;
   toggle.click();
-  await waitFor(() => Object.values(seam.frameCounts).filter((n) => n >= 5).length === 3);
+  await waitFor(
+    () => Object.values(seam.frameCounts).filter((n) => n >= 5).length === PROVIDER_COUNT,
+  );
 
   toggle.click();
   await waitFor(() => toggle.textContent === "Start microphone");

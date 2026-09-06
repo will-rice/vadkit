@@ -63,6 +63,7 @@ export default defineConfig({
     entry: [
       "src/index.ts",
       "src/providers/fireredvad.ts",
+      "src/providers/fsmn.ts",
       "src/providers/silero.ts",
       "src/providers/webrtc.ts",
     ],

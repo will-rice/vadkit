@@ -34,6 +34,10 @@
       "types": "./dist/providers/fireredvad.d.ts",
       "default": "./dist/providers/fireredvad.js"
     },
+    "./fsmn": {
+      "types": "./dist/providers/fsmn.d.ts",
+      "default": "./dist/providers/fsmn.js"
+    },
     "./silero": {
       "types": "./dist/providers/silero.d.ts",
       "default": "./dist/providers/silero.js"
@@ -58,7 +62,8 @@
     "bench": "vp test bench --project browser",
     "prepublishOnly": "npm run typecheck && npm test && npm run build",
     "prepare": "husky",
-    "fixtures": "uv run scripts/generate_fireredvad_fixture.py && uv run scripts/generate_silero_fixture.py && uv run scripts/generate_webrtc_fixture.py",
+    "fixtures": "uv run scripts/generate_fireredvad_fixture.py && uv run scripts/generate_silero_fixture.py && uv run scripts/generate_webrtc_fixture.py && uv run scripts/generate_fsmnvad_fixture.py",
+    "models": "uv run scripts/export_fsmn_vad_e2e.py",
     "demo": "vp dev demo"
   },
   "engines": {
