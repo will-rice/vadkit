@@ -21,6 +21,12 @@ export interface WebrtcVadOptions {
 export function webrtcVad(options: WebrtcVadOptions = {}): ProviderFactory {
   const aggressiveness = options.aggressiveness ?? 0;
   const frameMs = options.frameMs ?? 10;
+  if (![0, 1, 2, 3].includes(aggressiveness)) {
+    throw new Error(`aggressiveness must be 0, 1, 2 or 3, got ${String(aggressiveness)}`);
+  }
+  if (![10, 20, 30].includes(frameMs)) {
+    throw new Error(`frameMs must be 10, 20 or 30, got ${String(frameMs)}`);
+  }
   return async (): Promise<VadProvider> => {
     const module = await createFvadModule();
     return new WebrtcProvider(module, aggressiveness, (SAMPLE_RATE * frameMs) / 1000);
@@ -44,6 +50,11 @@ class WebrtcProvider implements VadProvider {
     this.frameSec = frameSamples / SAMPLE_RATE;
     this.instance = module._fvad_new();
     this.frameBuffer = module._malloc(frameSamples * 2);
+    if (this.instance === 0 || this.frameBuffer === 0) {
+      module._fvad_free(this.instance);
+      module._free(this.frameBuffer);
+      throw new Error("libfvad allocation failed");
+    }
     this.configure();
   }
 

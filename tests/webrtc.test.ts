@@ -71,3 +71,11 @@ test("dispose frees the wasm instance and frame buffer", async () => {
   await vad.processChunk(await loadPcm());
   await vad.dispose(); // must not throw; frees _fvad_new + _malloc allocations
 });
+
+test("unsupported aggressiveness or frameMs is rejected before any wasm allocation", () => {
+  // Plain-JS callers get no type check on these unions.
+  expect(() => webrtcVad({ aggressiveness: 4 as 3 })).toThrow(
+    /aggressiveness must be 0, 1, 2 or 3/,
+  );
+  expect(() => webrtcVad({ frameMs: 15 as 10 })).toThrow(/frameMs must be 10, 20 or 30/);
+});
