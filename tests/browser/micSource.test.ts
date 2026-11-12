@@ -54,3 +54,9 @@ test("start() rejects when the browser does not honor 16 kHz, instead of deliver
     globalThis.AudioContext = Native;
   }
 });
+
+test("overlapping stop() calls all resolve", async () => {
+  const source = micSource();
+  await source.start(() => undefined);
+  await Promise.all([source.stop(), source.stop()]);
+});
