@@ -85,9 +85,13 @@ export class VadSession {
 
   /** Stop capture, then flush so a still-open utterance is delivered. */
   async stop(): Promise<void> {
-    await this.source?.stop();
+    const source = this.source;
     this.source = null;
-    await this.flush();
+    try {
+      await source?.stop();
+    } finally {
+      await this.flush();
+    }
   }
 
   /**
@@ -108,8 +112,11 @@ export class VadSession {
   /** Stop and flush, then release the provider. Unusable afterwards; repeat calls are no-ops. */
   async dispose(): Promise<void> {
     if (this.stream.disposed) return;
-    await this.stop();
-    await this.stream.dispose();
+    try {
+      await this.stop();
+    } finally {
+      await this.stream.dispose();
+    }
   }
 
   /** Start a new utterance stream. Ordered behind in-flight processing. */
@@ -122,6 +129,9 @@ export class VadSession {
 
   private async processContiguous(pcm: Float32Array): Promise<VadFrame[]> {
     const frames: VadFrame[] = [];
+    // A throwing callback must not cost later frames their events (the
+    // segmenter has already moved on), so failures are rethrown at the end.
+    const callbackErrors: unknown[] = [];
     // Bounded writes keep every emitted event's audio within ring retention,
     // no matter how large the caller's chunk is.
     for (let offset = 0; offset === 0 || offset < pcm.length; offset += MAX_WRITE_SAMPLES) {
@@ -129,16 +139,26 @@ export class VadSession {
       this.ring.write(part);
       for (const frame of await this.stream.processChunk(part)) {
         frames.push(frame);
-        this.callbacks.onFrame?.(frame);
+        try {
+          this.callbacks.onFrame?.(frame);
+        } catch (error) {
+          callbackErrors.push(error);
+        }
         for (const event of frame.events) {
-          if (event.type === "speech_start") {
-            this.callbacks.onSpeechStart?.(event.time);
-          } else {
-            this.emitSpeechEnd(event);
+          try {
+            if (event.type === "speech_start") {
+              this.callbacks.onSpeechStart?.(event.time);
+            } else {
+              this.emitSpeechEnd(event);
+            }
+          } catch (error) {
+            callbackErrors.push(error);
           }
         }
       }
     }
+    if (callbackErrors.length === 1) throw callbackErrors[0];
+    if (callbackErrors.length > 1) throw new AggregateError(callbackErrors, "callbacks threw");
     return frames;
   }
 
@@ -168,6 +188,12 @@ export async function createVad(
     Object.entries<unknown>(opts).filter(([, value]) => value !== undefined),
   ) as Partial<VadOptions>;
   const provider = await factory();
-  const stream = new VadStream(provider, { ...DEFAULT_VAD_OPTIONS, ...overrides });
+  let stream: VadStream;
+  try {
+    stream = new VadStream(provider, { ...DEFAULT_VAD_OPTIONS, ...overrides });
+  } catch (error) {
+    await provider.dispose();
+    throw error;
+  }
   return new VadSession(stream, { onFrame, onSpeechStart, onSpeechEnd, onError });
 }

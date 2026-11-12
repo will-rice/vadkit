@@ -1,5 +1,5 @@
 import { ChunkBuffer } from "#engine/chunkBuffer.ts";
-import { Segmenter } from "#engine/segmenter.ts";
+import { DEFAULT_VAD_OPTIONS, Segmenter } from "#engine/segmenter.ts";
 import type { VadEvent, VadFrame, VadOptions } from "#engine/segmenter.ts";
 import { SerialQueue } from "#engine/serialQueue.ts";
 import type { VadProvider } from "#types.ts";
@@ -14,7 +14,10 @@ export class VadStream {
   private live = true;
 
   constructor(provider: VadProvider, options: VadOptions) {
-    for (const [key, value] of Object.entries(options)) {
+    // Every option is required: a missing one (plain-JS callers get no type
+    // check) would otherwise turn the segmenter's frame counts into NaN.
+    for (const key of Object.keys(DEFAULT_VAD_OPTIONS) as (keyof VadOptions)[]) {
+      const value: unknown = options[key];
       if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
         throw new Error(`${key} must be a finite non-negative number`);
       }
@@ -83,14 +86,25 @@ export class VadStream {
   private async processContiguous(pcm: Float32Array): Promise<VadFrame[]> {
     const run = this.buffer.push(pcm);
     if (run === null) return [];
-    const probs = await this.provider.process(run);
-    const frames: VadFrame[] = [];
-    for (const p of probs) {
-      if (!(p >= 0 && p <= 1)) {
-        throw new Error(`provider returned probability ${String(p)} outside [0, 1]`);
+    const numFrames = (run.length - this.buffer.windowSamples) / this.buffer.hopSamples + 1;
+    let probs: Float32Array;
+    try {
+      probs = await this.provider.process(run);
+      if (probs.length !== numFrames) {
+        throw new Error(
+          `provider returned ${String(probs.length)} probabilities for ${String(numFrames)} frames`,
+        );
       }
-      frames.push(this.segmenter.process(p));
+      for (const p of probs) {
+        if (!(p >= 0 && p <= 1)) {
+          throw new Error(`provider returned probability ${String(p)} outside [0, 1]`);
+        }
+      }
+    } catch (error) {
+      // The run's audio is consumed either way; keep frame times aligned with it.
+      this.segmenter.skip(numFrames);
+      throw error;
     }
-    return frames;
+    return Array.from(probs, (p) => this.segmenter.process(p));
   }
 }

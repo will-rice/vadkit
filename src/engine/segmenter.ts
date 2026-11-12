@@ -75,6 +75,14 @@ export class Segmenter {
     this.lastEndTime = 0;
   }
 
+  /**
+   * Advance the timeline past frames that produced no probability (a failed
+   * inference), so later frame times still match the audio position.
+   */
+  skip(frames: number): void {
+    this.index += frames;
+  }
+
   process(probability: number): VadFrame {
     this.index += 1;
     const time = this.index * this.frameSec;
@@ -121,16 +129,24 @@ export class Segmenter {
         break;
     }
 
-    // Force-split overlong segments.
+    // Overlong segments: split one still voiced; end one already trailing
+    // into silence where that silence began, without opening a silent segment.
     if (
       (this.state === "speech" || this.state === "possible_silence") &&
       time - this.segmentStartTime >= this.options.maxSpeechSec
     ) {
-      events.push({ type: "speech_end", time, startTime: this.segmentStartTime });
-      events.push({ type: "speech_start", time });
-      this.segmentStartTime = time;
-      this.lastEndTime = time;
-      this.state = "speech";
+      if (this.state === "speech") {
+        events.push({ type: "speech_end", time, startTime: this.segmentStartTime });
+        events.push({ type: "speech_start", time });
+        this.segmentStartTime = time;
+        this.lastEndTime = time;
+      } else {
+        const endTime = this.silenceRunStart * this.frameSec;
+        events.push({ type: "speech_end", time: endTime, startTime: this.segmentStartTime });
+        this.lastEndTime = endTime;
+        this.segmentStartTime = -1;
+        this.state = "silence";
+      }
     }
 
     const isSpeech = this.state === "speech" || this.state === "possible_silence";
