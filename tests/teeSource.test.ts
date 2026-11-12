@@ -65,3 +65,50 @@ test("the underlying source stops once, after every tee has stopped, and can res
   await Promise.all(tees.map((tee) => tee.start(() => undefined)));
   expect(source.starts).toBe(2);
 });
+
+test("a failed underlying start can be retried by the tee that triggered it", async () => {
+  const source = trackedSource();
+  const start = source.start.bind(source);
+  let attempts = 0;
+  source.start = (onChunk): Promise<void> => {
+    attempts += 1;
+    return attempts === 1 ? Promise.reject(new Error("denied")) : start(onChunk);
+  };
+  const [a, b] = teeSource(source, 2);
+  if (a === undefined || b === undefined) throw new Error("expected two tees");
+  const received: number[] = [];
+  await a.start((pcm) => received.push(pcm.length));
+  await expect(b.start(() => undefined)).rejects.toThrow("denied");
+  await b.start((pcm) => received.push(pcm.length));
+  expect(source.starts).toBe(1);
+  source.push(new Float32Array(4));
+  expect(received).toEqual([4, 4]);
+});
+
+test("a stopped tee receives no further chunks and can rejoin", async () => {
+  const source = trackedSource();
+  const [a, b] = teeSource(source, 2);
+  if (a === undefined || b === undefined) throw new Error("expected two tees");
+  const received: number[][] = [[], []];
+  await a.start((pcm) => received[0]?.push(pcm.length));
+  await b.start((pcm) => received[1]?.push(pcm.length));
+  await a.stop();
+  source.push(new Float32Array(3));
+  await a.start((pcm) => received[0]?.push(pcm.length));
+  source.push(new Float32Array(5));
+  expect(received).toEqual([[5], [3, 5]]);
+  expect(source.starts).toBe(1);
+  expect(source.stops).toBe(0);
+});
+
+test("restarting one tee before the others start does not open the source", async () => {
+  const source = trackedSource();
+  const [a] = teeSource(source, 2);
+  if (a === undefined) throw new Error("expected two tees");
+  await a.start(() => undefined);
+  await a.stop();
+  await a.start(() => undefined);
+  expect(source.starts).toBe(0);
+  expect(source.stops).toBe(0);
+  await expect(a.start(() => undefined)).rejects.toThrow("tee already started");
+});
