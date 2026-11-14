@@ -79,7 +79,8 @@ export class VadStream {
     });
   }
 
-  private assertLive(): void {
+  /** Throws "stream disposed" once dispose() has run. */
+  assertLive(): void {
     if (!this.live) throw new Error("stream disposed");
   }
 

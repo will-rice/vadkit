@@ -81,9 +81,14 @@ export class VadSession {
   /**
    * Capture from a source until stop(). Starts and stops run one after
    * another, in call order, so neither acts on a half-finished transition.
+   * Rejects with "stream disposed", leaving the source untouched, after
+   * dispose().
    */
   start(source: AudioSource): Promise<void> {
     return this.lifecycle.run(async () => {
+      // A disposed session could never process the source's chunks, and
+      // dispose() would not stop it again.
+      this.stream.assertLive();
       if (this.source !== null) throw new Error("session already started");
       await source.start((pcm) => {
         const result = this.queue.run(() => this.processContiguous(pcm));

@@ -521,3 +521,18 @@ test("one failure cause rejects with the same error whatever the chunk length", 
   }
   expect(messages).toEqual(["Error: stream disposed", "Error: stream disposed"]);
 });
+
+test("start() on a disposed session rejects without starting the source", async () => {
+  const vad = await createVad(() => Promise.resolve(fakeProvider()), OPTS);
+  await vad.dispose();
+  let starts = 0;
+  const source: AudioSource = {
+    start(): Promise<void> {
+      starts += 1;
+      return Promise.resolve();
+    },
+    stop: () => Promise.resolve(),
+  };
+  await expect(vad.start(source)).rejects.toThrow(/stream disposed/);
+  expect(starts).toBe(0);
+});
