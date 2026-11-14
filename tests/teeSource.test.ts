@@ -141,3 +141,28 @@ test("a tee restarted during the underlying stop starts the source only after it
   await Promise.all([stopped, restarted]);
   expect(calls).toEqual(["start", "stop begins", "stop ends", "start"]);
 });
+
+test("the last tee to stop receives what the source delivers while stopping", async () => {
+  // Like micSource, this source drains a partial batch during stop().
+  let deliver: (pcm: Float32Array) => void = () => undefined;
+  const source: AudioSource = {
+    start(onChunk): Promise<void> {
+      deliver = onChunk;
+      return Promise.resolve();
+    },
+    async stop(): Promise<void> {
+      await Promise.resolve();
+      deliver(new Float32Array(7));
+    },
+  };
+  const [a, b] = teeSource(source, 2);
+  if (a === undefined || b === undefined) throw new Error("expected two tees");
+  const received: number[][] = [[], []];
+  await a.start((pcm) => received[0]?.push(pcm.length));
+  await b.start((pcm) => received[1]?.push(pcm.length));
+  await a.stop();
+  await b.stop();
+  expect(received).toEqual([[], [7]]);
+  deliver(new Float32Array(9));
+  expect(received).toEqual([[], [7]]);
+});
