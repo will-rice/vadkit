@@ -10,6 +10,7 @@ import fsmnModelUrl from "../models/fsmn_vad_e2e.onnx?url";
 import sileroModelUrl from "../models/silero_vad.onnx?url";
 
 const HISTORY_SEC = 8;
+const MAX_SEGMENTS = 20;
 const DEFAULT_THRESHOLD = 0.4;
 
 // FSMN-VAD sits near 0.5 on non-speech where the others fall to their floor;
@@ -86,7 +87,7 @@ function draw(panel: Panel): void {
   const ctx = panel.canvas.getContext("2d");
   if (ctx === null) return;
   const { width, height } = panel.canvas;
-  const frames = panel.history.slice(-panel.maxFrames);
+  const frames = panel.history;
   const x = (i: number): number => (i / panel.maxFrames) * width;
   const y = (p: number): number => height - p * height;
   ctx.clearRect(0, 0, width, height);
@@ -124,6 +125,7 @@ function callbacksFor(name: string): {
       const panel = panels.get(name);
       if (panel === undefined) return;
       panel.history.push(frame);
+      if (panel.history.length > panel.maxFrames) panel.history.shift();
       panel.status.textContent = frame.isSpeech ? "speech" : "silence";
       panel.status.classList.toggle("speech", frame.isSpeech);
       draw(panel);
@@ -135,6 +137,7 @@ function callbacksFor(name: string): {
       panel.segments.push(
         `${utterance.startTime.toFixed(2)}–${utterance.endTime.toFixed(2)} (${dur.toFixed(2)}s audio)`,
       );
+      if (panel.segments.length > MAX_SEGMENTS) panel.segments.shift();
       panel.utterances.textContent = panel.segments.join("  |  ");
     },
   };
@@ -155,29 +158,33 @@ let running = false;
 
 toggle.onclick = (): void => {
   void (async (): Promise<void> => {
-    if (running) {
-      running = false;
-      toggle.textContent = "Start microphone";
-      // The mic stops once every session has released its tee.
-      for (const session of sessions) await session.stop();
-      return;
-    }
+    // Disabled until the start or stop has finished, so a click in between
+    // cannot start sessions that are still stopping (or the reverse).
     toggle.disabled = true;
     try {
-      const tees = teeSource(micSource(), sessions.length);
-      // The mic opens on the last start, once every tee has a consumer.
-      for (const [i, session] of sessions.entries()) {
-        const tee = tees[i];
-        if (tee === undefined) throw new Error("teeSource returned too few");
-        await session.start(tee);
+      if (running) {
+        // The mic stops once every session has released its tee.
+        for (const session of sessions) await session.stop();
+        running = false;
+        toggle.textContent = "Start microphone";
+        return;
       }
-      running = true;
-      toggle.textContent = "Stop microphone";
-    } catch (error) {
-      // A failed start (e.g. microphone denied) must not leave the earlier
-      // sessions started, or the next click could never start them again.
-      for (const session of sessions) await session.stop();
-      throw error;
+      try {
+        const tees = teeSource(micSource(), sessions.length);
+        // The mic opens on the last start, once every tee has a consumer.
+        for (const [i, session] of sessions.entries()) {
+          const tee = tees[i];
+          if (tee === undefined) throw new Error("teeSource returned too few");
+          await session.start(tee);
+        }
+        running = true;
+        toggle.textContent = "Stop microphone";
+      } catch (error) {
+        // A failed start (e.g. microphone denied) must not leave the earlier
+        // sessions started, or the next click could never start them again.
+        for (const session of sessions) await session.stop();
+        throw error;
+      }
     } finally {
       toggle.disabled = false;
     }

@@ -35,7 +35,12 @@ test("the demo runs every provider on one microphone and stops cleanly", async (
   );
 
   toggle.click();
+  // Stopping is asynchronous: until every session has stopped the toggle is
+  // disabled and still reads "Stop microphone", so the wait below is real.
+  expect(toggle.disabled).toBe(true);
+  expect(toggle.textContent).toBe("Stop microphone");
   await waitFor(() => toggle.textContent === "Start microphone");
+  expect(toggle.disabled).toBe(false);
   const counts = { ...seam.frameCounts };
   await new Promise((resolve) => setTimeout(resolve, 500));
   expect(seam.frameCounts).toEqual(counts); // nothing arrives after stop
