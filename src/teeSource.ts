@@ -12,6 +12,7 @@ import type { AudioSource } from "#engine/session.ts";
 export function teeSource(source: AudioSource, count: number): AudioSource[] {
   const listeners = new Map<number, (pcm: Float32Array) => void>();
   let running = false;
+  let stopping: Promise<void> | null = null;
   return Array.from({ length: count }, (_, id) => ({
     async start(onChunk: (pcm: Float32Array) => void): Promise<void> {
       if (listeners.has(id)) throw new Error("tee already started");
@@ -19,6 +20,8 @@ export function teeSource(source: AudioSource, count: number): AudioSource[] {
       if (listeners.size < count || running) return;
       running = true;
       try {
+        // A restart must not reach the source while it is still stopping.
+        await Promise.allSettled([stopping]);
         await source.start((pcm) => {
           for (const listener of listeners.values()) listener(pcm);
         });
@@ -32,7 +35,8 @@ export function teeSource(source: AudioSource, count: number): AudioSource[] {
       listeners.delete(id);
       if (listeners.size > 0 || !running) return;
       running = false;
-      await source.stop();
+      stopping = source.stop();
+      await stopping;
     },
   }));
 }

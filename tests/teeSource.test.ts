@@ -112,3 +112,32 @@ test("restarting one tee before the others start does not open the source", asyn
   expect(source.stops).toBe(0);
   await expect(a.start(() => undefined)).rejects.toThrow("tee already started");
 });
+
+test("a tee restarted during the underlying stop starts the source only after it has stopped", async () => {
+  const calls: string[] = [];
+  let finishStop: () => void = () => undefined;
+  const source: AudioSource = {
+    start(): Promise<void> {
+      calls.push("start");
+      return Promise.resolve();
+    },
+    stop(): Promise<void> {
+      calls.push("stop begins");
+      return new Promise((resolve) => {
+        finishStop = (): void => {
+          calls.push("stop ends");
+          resolve();
+        };
+      });
+    },
+  };
+  const [tee] = teeSource(source, 1);
+  if (tee === undefined) throw new Error("expected one tee");
+  await tee.start(() => undefined);
+  const stopped = tee.stop();
+  const restarted = tee.start(() => undefined);
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  finishStop();
+  await Promise.all([stopped, restarted]);
+  expect(calls).toEqual(["start", "stop begins", "stop ends", "start"]);
+});
