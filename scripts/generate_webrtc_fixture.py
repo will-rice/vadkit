@@ -27,9 +27,9 @@ FRAME_BYTES = SAMPLE_RATE * FRAME_MS // 1000 * 2
 
 def main():
     with wave.open(os.path.join(HERE, "..", "tests", "assets", "hello_en.wav")) as f:
-        assert f.getframerate() == SAMPLE_RATE
-        assert f.getnchannels() == 1
-        assert f.getsampwidth() == 2
+        wav_format = (f.getframerate(), f.getnchannels(), f.getsampwidth())
+        if wav_format != (SAMPLE_RATE, 1, 2):
+            raise ValueError(f"hello_en.wav is {wav_format}; expected 16 kHz mono 16-bit")
         pcm = f.readframes(f.getnframes())
 
     modes = {}

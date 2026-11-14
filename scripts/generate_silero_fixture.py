@@ -23,7 +23,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 def main():
     wav, sr = sf.read(os.path.join(HERE, "..", "tests", "assets", "hello_en.wav"), dtype="int16")
-    assert sr == 16000
+    if sr != 16000:
+        raise ValueError(f"hello_en.wav is {sr} Hz; expected 16000")
     pcm = (wav / 32768.0).astype(np.float32)
 
     model = load_silero_vad(onnx=True)
