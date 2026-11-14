@@ -32,4 +32,9 @@ test("dispose releases the ONNX session", async () => {
   const vad = await createVad(sileroVad({ model: await loadModel("silero_vad.onnx") }));
   await vad.processChunk(new Float32Array(1024));
   await vad.dispose();
+  // onnxruntime-web refuses to run a session it has released.
+  const { provider } = vad.stream;
+  await expect(provider.process(new Float32Array(provider.windowSamples))).rejects.toThrow(
+    /invalid session id/,
+  );
 });

@@ -1,6 +1,7 @@
 import { expect, test } from "vite-plus/test";
 
 import { createVad } from "#index.ts";
+import type { FvadModule } from "#providers/libfvad/fvad.js";
 import { webrtcVad } from "#providers/webrtc.ts";
 
 import { loadFixture, loadPcm } from "./helpers.ts";
@@ -69,7 +70,18 @@ test("20 ms frames use 320-sample geometry", async () => {
 test("dispose frees the wasm instance and frame buffer", async () => {
   const vad = await createVad(webrtcVad());
   await vad.processChunk(await loadPcm());
-  await vad.dispose(); // must not throw; frees _fvad_new + _malloc allocations
+  // The provider's two heap blocks, read from its private fields: the wasm
+  // heap has no other window, and src carries no test hook.
+  const { module, instance, frameBuffer } = vad.stream.provider as unknown as {
+    module: FvadModule;
+    instance: number;
+    frameBuffer: number;
+  };
+  await vad.dispose();
+  // The allocator hands a freed block back to the next request of its
+  // size; a block still held would force a fresh address instead.
+  expect(module._fvad_new()).toBe(instance);
+  expect(module._malloc(vad.stream.provider.windowSamples * 2)).toBe(frameBuffer);
 });
 
 test("unsupported aggressiveness or frameMs is rejected before any wasm allocation", () => {

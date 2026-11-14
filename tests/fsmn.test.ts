@@ -72,3 +72,14 @@ test("detects the utterance with default options", async () => {
   expect(starts[0]).toBeLessThanOrEqual(0.45);
   expect(ends.length).toBeLessThanOrEqual(1); // trailing speech may not have ended
 });
+
+test("dispose releases the ONNX session", async () => {
+  const vad = await createVad(fsmnVad({ model: await loadModel("fsmn_vad_e2e.onnx") }));
+  await vad.processChunk(new Float32Array(4000));
+  await vad.dispose();
+  // onnxruntime-web refuses to run a session it has released.
+  const { provider } = vad.stream;
+  await expect(provider.process(new Float32Array(provider.windowSamples))).rejects.toThrow(
+    /invalid session id/,
+  );
+});
