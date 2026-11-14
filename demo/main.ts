@@ -12,6 +12,7 @@ import sileroModelUrl from "../models/silero_vad.onnx?url";
 const HISTORY_SEC = 8;
 const MAX_SEGMENTS = 20;
 const DEFAULT_THRESHOLD = 0.4;
+const READY_INFO = "Models loaded. Audio never leaves this page.";
 
 // FSMN-VAD sits near 0.5 on non-speech where the others fall to their floor;
 // FunASR reads it against 0.6, so it gets its own threshold here.
@@ -147,12 +148,16 @@ const sessions = await Promise.all(
   PROVIDERS.map(({ label, factory, speechThreshold }) =>
     createVad(factory, { speechThreshold, ...callbacksFor(label) }),
   ),
-);
+).catch((error: unknown) => {
+  // Otherwise the page reads "Loading models…" forever.
+  info.textContent = `Could not load the models: ${String(error)}`;
+  throw error;
+});
 for (const { label, frameSec, speechThreshold } of PROVIDERS) {
   makePanel(label, frameSec, speechThreshold);
 }
 
-info.textContent = "Models loaded. Audio never leaves this page.";
+info.textContent = READY_INFO;
 toggle.disabled = false;
 let running = false;
 
@@ -170,6 +175,8 @@ toggle.onclick = (): void => {
         return;
       }
       try {
+        // Clears the message a failed start left behind.
+        info.textContent = READY_INFO;
         const tees = teeSource(micSource(), sessions.length);
         // The mic opens on the last start, once every tee has a consumer.
         for (const [i, session] of sessions.entries()) {
@@ -180,6 +187,9 @@ toggle.onclick = (): void => {
         running = true;
         toggle.textContent = "Stop microphone";
       } catch (error) {
+        // Nothing awaits this handler, so the rethrow below only reaches
+        // the console; the page has to say why the button reset.
+        info.textContent = `Could not start the microphone: ${String(error)}`;
         // A failed start (e.g. microphone denied) must not leave the earlier
         // sessions started, or the next click could never start them again.
         for (const session of sessions) await session.stop();
