@@ -11,6 +11,7 @@ context handling).
 """
 
 import json
+import logging
 import os
 
 import numpy as np
@@ -22,6 +23,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     wav, sr = sf.read(os.path.join(HERE, "..", "tests", "assets", "hello_en.wav"), dtype="int16")
     if sr != 16000:
         raise ValueError(f"hello_en.wav is {sr} Hz; expected 16000")
@@ -40,7 +42,7 @@ def main():
             {"wav": "hello_en.wav", "windowSamples": 512, "probs": probs}, f, separators=(",", ":")
         )
         f.write("\n")
-    print(f"wrote {out} ({len(probs)} windows)")
+    logging.info(f"wrote {out} ({len(probs)} windows)")
 
 
 if __name__ == "__main__":

@@ -38,6 +38,7 @@ Run: npm run fixtures
 
 import itertools
 import json
+import logging
 import os
 
 import kaldi_native_fbank as knf
@@ -60,6 +61,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     wav, sr = sf.read(os.path.join(HERE, "..", "tests", "assets", "hello_en.wav"), dtype="float32")
     if sr != SAMPLE_RATE:
         raise ValueError(f"expected {SAMPLE_RATE} Hz, got {sr}")
@@ -91,7 +93,7 @@ def main():
             separators=(",", ":"),
         )
         f.write("\n")
-    print(f"wrote {out} ({len(probs)} causal, {len(padded_probs)} padded frames)")
+    logging.info(f"wrote {out} ({len(probs)} causal, {len(padded_probs)} padded frames)")
 
 
 def fbank(wav: np.ndarray) -> np.ndarray:

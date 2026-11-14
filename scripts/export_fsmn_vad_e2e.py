@@ -43,6 +43,7 @@ Run: npm run models
 
 import hashlib
 import itertools
+import logging
 import os
 
 import numpy as np
@@ -75,6 +76,7 @@ OUT = os.path.join(HERE, "..", "models", "fsmn_vad_e2e.onnx")
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     frontend = build_frontend(analysis_kernel(), mel_matrix(), *load_cmvn())
     encoder = onnx.load(hf_hub_download(REPO, "model.onnx"))
     model = onnx.compose.merge_models(
@@ -88,8 +90,8 @@ def main():
 
     with open(OUT, "rb") as f:
         digest = hashlib.sha256(f.read()).hexdigest()
-    print(f"wrote {OUT} ({os.path.getsize(OUT) / 1e6:.2f} MB)")
-    print(f"sha256: {digest}")
+    logging.info(f"wrote {OUT} ({os.path.getsize(OUT) / 1e6:.2f} MB)")
+    logging.info(f"sha256: {digest}")
 
 
 def analysis_kernel() -> np.ndarray:

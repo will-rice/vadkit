@@ -26,6 +26,7 @@ Run: npm run fixtures
 """
 
 import json
+import logging
 import os
 
 from fireredvad import FireRedStreamVad
@@ -35,6 +36,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     model_dir = snapshot_download("FireRedTeam/FireRedVAD", allow_patterns=["Stream-VAD/*"])
     vad = FireRedStreamVad.from_pretrained(os.path.join(model_dir, "Stream-VAD"))
 
@@ -47,7 +49,7 @@ def main():
     with open(out, "w") as f:
         json.dump({"wav": "hello_en.wav", "probs": probs}, f, separators=(",", ":"))
         f.write("\n")
-    print(f"wrote {out} ({len(probs)} frames)")
+    logging.info(f"wrote {out} ({len(probs)} frames)")
 
 
 if __name__ == "__main__":

@@ -14,6 +14,7 @@ Run: uv run scripts/generate_webrtc_fixture.py
 """
 
 import json
+import logging
 import os
 import wave
 
@@ -26,6 +27,7 @@ FRAME_BYTES = SAMPLE_RATE * FRAME_MS // 1000 * 2
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     with wave.open(os.path.join(HERE, "..", "tests", "assets", "hello_en.wav")) as f:
         wav_format = (f.getframerate(), f.getnchannels(), f.getsampwidth())
         if wav_format != (SAMPLE_RATE, 1, 2):
@@ -48,7 +50,7 @@ def main():
             separators=(",", ":"),
         )
         f.write("\n")
-    print(f"wrote {out} ({len(modes['0'])} frames x {len(modes)} modes)")
+    logging.info(f"wrote {out} ({len(modes['0'])} frames x {len(modes)} modes)")
 
 
 if __name__ == "__main__":
