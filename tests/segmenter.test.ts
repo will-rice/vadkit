@@ -126,3 +126,21 @@ test("maxSpeechSec splits exactly at the limit, measured from the padded start",
   expect(events[2]?.time).toBeCloseTo(0.06, 9);
   expect(frames[6]?.events).toHaveLength(2);
 });
+
+test("maxSpeechSec reached during trailing silence ends the segment where the silence began", () => {
+  const seg = new Segmenter({ ...OPTS, maxSpeechSec: 0.06 }, 0.01);
+  // Voiced 0-3, silent from index 4: the limit (0.06 s) lands inside the
+  // 5-frame fall delay, so there is nothing voiced left to split off.
+  const events = feed(seg, [0.9, 0.9, 0.9, 0.9, 0, 0, 0, 0, 0, 0, 0, 0]).flatMap((f) => f.events);
+  expect(events.map((e) => e.type)).toEqual(["speech_start", "speech_end"]);
+  expect(events[1]?.time).toBeCloseTo(0.04, 9);
+});
+
+test("skip advances frame times without changing state", () => {
+  const seg = new Segmenter(OPTS, 0.01);
+  feed(seg, [0, 0]);
+  seg.skip(3);
+  const frame = seg.process(0);
+  expect(frame.index).toBe(5);
+  expect(frame.time).toBeCloseTo(0.05, 9);
+});

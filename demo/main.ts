@@ -173,6 +173,11 @@ toggle.onclick = (): void => {
       }
       running = true;
       toggle.textContent = "Stop microphone";
+    } catch (error) {
+      // A failed start (e.g. microphone denied) must not leave the earlier
+      // sessions started, or the next click could never start them again.
+      for (const session of sessions) await session.stop();
+      throw error;
     } finally {
       toggle.disabled = false;
     }

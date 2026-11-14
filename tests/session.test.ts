@@ -134,7 +134,7 @@ test("a provider probability outside [0, 1] rejects instead of poisoning the str
   const provider = fakeProvider();
   const broken: VadProvider = {
     ...provider,
-    process: () => Promise.resolve(Float32Array.from([0.5, NaN, 0.5])),
+    process: () => Promise.resolve(Float32Array.from([0.5, NaN, 0.5, 0.5])),
   };
   const vad = await createVad(() => Promise.resolve(broken), OPTS);
   await expect(vad.processChunk(new Float32Array(1000))).rejects.toThrow(/outside \[0, 1\]/);
@@ -253,4 +253,108 @@ test("stop() and dispose() are safe without start() and when repeated", async ()
   await vad.dispose();
   await vad.dispose();
   expect(disposed).toBe(1);
+});
+
+test("a provider failure does not shift later utterances against their audio", async () => {
+  const good = fakeProvider();
+  let calls = 0;
+  const flaky: VadProvider = {
+    ...good,
+    process(samples: Float32Array): Promise<Float32Array> {
+      calls += 1;
+      return calls === 2 ? Promise.reject(new Error("model exploded")) : good.process(samples);
+    },
+  };
+  const utterances: Utterance[] = [];
+  const vad = await createVad(() => Promise.resolve(flaky), {
+    ...OPTS,
+    onSpeechEnd: (u) => utterances.push(u),
+  });
+  // 0.5 s chunks; the second fails. Speech occupies 1.5-2.0 s.
+  const pcm = new Float32Array(48000);
+  pcm.fill(0.9, 24000, 32000);
+  const results = [];
+  for (let i = 0; i < pcm.length; i += 8000) {
+    results.push(await vad.processChunk(pcm.subarray(i, i + 8000)).catch((e: unknown) => e));
+  }
+  expect(String(results[1])).toMatch(/model exploded/);
+  expect(utterances).toHaveLength(1);
+  const u = utterances[0];
+  if (u === undefined) return;
+  expect(u.startTime).toBeGreaterThan(1.45);
+  expect(u.startTime).toBeLessThan(1.5);
+  expect(u.endTime).toBeGreaterThan(1.95);
+  expect(u.endTime).toBeLessThan(2.05);
+  expect(u.audio).toEqual(
+    pcm.slice(Math.round(u.startTime * 16000), Math.round(u.endTime * 16000)),
+  );
+});
+
+test("a throwing callback rejects the chunk but later events are still delivered", async () => {
+  const utterances: Utterance[] = [];
+  let frames = 0;
+  const vad = await createVad(() => Promise.resolve(fakeProvider()), {
+    ...OPTS,
+    onFrame: () => {
+      frames += 1;
+      if (frames === 10) throw new Error("ui bug");
+    },
+    onSpeechEnd: (u) => utterances.push(u),
+  });
+  // One chunk holding a whole utterance; onFrame throws before it starts.
+  await expect(vad.processChunk(speechPcm())).rejects.toThrow("ui bug");
+  expect(frames).toBe(Math.floor((24000 - 400) / 160) + 1);
+  expect(utterances).toHaveLength(1);
+});
+
+test("stop() still clears the source and flushes when the source fails to stop", async () => {
+  const utterances: Utterance[] = [];
+  const vad = await createVad(() => Promise.resolve(fakeProvider()), {
+    ...OPTS,
+    onSpeechEnd: (u) => utterances.push(u),
+  });
+  const pcm = new Float32Array(16000);
+  pcm.fill(0.9, 8000);
+  const source = fakeSource(pcm, 512);
+  await vad.start({
+    start: (onChunk) => source.start(onChunk),
+    stop: () => Promise.reject(new Error("close failed")),
+  });
+  await vad.processChunk(new Float32Array(0)); // barrier: drain the serialized queue
+  await expect(vad.stop()).rejects.toThrow("close failed");
+  expect(utterances).toHaveLength(1);
+  await vad.start(fakeSource(new Float32Array(1000), 500)); // must not throw
+});
+
+test("dispose() releases the provider even when the source fails to stop", async () => {
+  let disposed = false;
+  const provider: VadProvider = {
+    ...fakeProvider(),
+    dispose(): Promise<void> {
+      disposed = true;
+      return Promise.resolve();
+    },
+  };
+  const vad = await createVad(() => Promise.resolve(provider), OPTS);
+  await vad.start({
+    start: () => Promise.resolve(),
+    stop: () => Promise.reject(new Error("close failed")),
+  });
+  await expect(vad.dispose()).rejects.toThrow("close failed");
+  expect(disposed).toBe(true);
+});
+
+test("createVad releases the provider when the options are rejected", async () => {
+  let disposed = false;
+  const provider: VadProvider = {
+    ...fakeProvider(),
+    dispose(): Promise<void> {
+      disposed = true;
+      return Promise.resolve();
+    },
+  };
+  await expect(
+    createVad(() => Promise.resolve(provider), { speechThreshold: NaN }),
+  ).rejects.toThrow(/speechThreshold must be a finite/);
+  expect(disposed).toBe(true);
 });

@@ -1,6 +1,7 @@
 import { expect, test } from "vite-plus/test";
 
-import { createVad } from "#index.ts";
+import { createVad, VadStream } from "#index.ts";
+import type { VadOptions, VadProvider } from "#index.ts";
 
 import { fakeProvider } from "./helpers.ts";
 
@@ -68,4 +69,21 @@ test("use after dispose rejects with a concise error", async () => {
   await expect(vad.stream.processChunk(new Float32Array(1000))).rejects.toThrow("stream disposed");
   await expect(vad.stream.flush()).rejects.toThrow("stream disposed");
   await expect(vad.stream.reset()).rejects.toThrow("stream disposed");
+});
+
+test("a missing option is rejected instead of silently disabling detection", () => {
+  // A plain-JS caller constructing the stream directly with partial options.
+  const partial = { speechThreshold: 0.6 } as unknown as VadOptions;
+  expect(() => new VadStream(fakeProvider(), partial)).toThrow(/smoothWindowSec must be a finite/);
+});
+
+test("a provider returning the wrong number of probabilities rejects", async () => {
+  const short: VadProvider = {
+    ...fakeProvider(),
+    process: () => Promise.resolve(new Float32Array(1)),
+  };
+  const vad = await createVad(() => Promise.resolve(short), OPTS);
+  await expect(vad.processChunk(new Float32Array(1000))).rejects.toThrow(
+    /1 probabilities for 4 frames/,
+  );
 });

@@ -55,6 +55,7 @@ export function micSource(options: MicSourceOptions = {}): AudioSource {
   let mediaStream: MediaStream | null = null;
   let port: MessagePort | null = null;
   let flushResolve: (() => void) | null = null;
+  let stopping: Promise<void> | null = null;
 
   async function release(): Promise<void> {
     mediaStream?.getTracks().forEach((track) => {
@@ -105,16 +106,25 @@ export function micSource(options: MicSourceOptions = {}): AudioSource {
         throw error;
       }
     },
-    async stop(): Promise<void> {
-      // Drain the worklet's partial batch so the tail of the last utterance
-      // reaches the session before capture ends.
-      if (port !== null && context?.state === "running") {
-        await new Promise<void>((resolve) => {
-          flushResolve = resolve;
-          port?.postMessage("flush");
-        });
-      }
-      await release();
+    stop(): Promise<void> {
+      // Overlapping calls share one stop: a second flush request would take
+      // the first one's reply and leave it waiting forever.
+      stopping ??= (async (): Promise<void> => {
+        try {
+          // Drain the worklet's partial batch so the tail of the last
+          // utterance reaches the session before capture ends.
+          if (port !== null && context?.state === "running") {
+            await new Promise<void>((resolve) => {
+              flushResolve = resolve;
+              port?.postMessage("flush");
+            });
+          }
+        } finally {
+          await release();
+          stopping = null;
+        }
+      })();
+      return stopping;
     },
   };
 }
