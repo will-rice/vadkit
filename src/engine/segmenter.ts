@@ -78,9 +78,16 @@ export class Segmenter {
   /**
    * Advance the timeline past frames that produced no probability (a failed
    * inference), so later frame times still match the audio position.
+   * Unknown frames never confirm a transition: a pending speech start or
+   * end is dropped and smoothing restarts, while silence and speech carry
+   * on (maxSpeechSec is checked again on the next processed frame).
    */
   skip(frames: number): void {
     this.index += frames;
+    if (this.state === "possible_speech") this.state = "silence";
+    else if (this.state === "possible_silence") this.state = "speech";
+    this.window = [];
+    this.windowSum = 0;
   }
 
   process(probability: number): VadFrame {

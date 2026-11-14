@@ -136,11 +136,59 @@ test("maxSpeechSec reached during trailing silence ends the segment where the si
   expect(events[1]?.time).toBeCloseTo(0.04, 9);
 });
 
-test("skip advances frame times without changing state", () => {
+test("skip advances frame times and leaves silence and speech as they were", () => {
   const seg = new Segmenter(OPTS, 0.01);
   feed(seg, [0, 0]);
   seg.skip(3);
-  const frame = seg.process(0);
-  expect(frame.index).toBe(5);
-  expect(frame.time).toBeCloseTo(0.05, 9);
+  const silent = seg.process(0);
+  expect(silent.index).toBe(5);
+  expect(silent.time).toBeCloseTo(0.05, 9);
+  expect(silent.isSpeech).toBe(false);
+  feed(seg, [0.9, 0.9, 0.9]);
+  seg.skip(3);
+  const voiced = seg.process(0.9);
+  expect(voiced.isSpeech).toBe(true);
+  expect(voiced.events).toHaveLength(0);
+});
+
+test("skipped frames do not count toward the rise delay", () => {
+  const seg = new Segmenter({ ...OPTS, riseDelaySec: 0.08 }, 0.01);
+  const first = seg.process(0.9);
+  seg.skip(10);
+  const second = seg.process(0.9);
+  expect([...first.events, ...second.events]).toHaveLength(0);
+  expect(second.isSpeech).toBe(false);
+  // The voiced run restarts after the gap: 8 frames from the second one.
+  const frames = feed(seg, new Array<number>(7).fill(0.9));
+  expect(frames.slice(0, 6).flatMap((f) => f.events)).toHaveLength(0);
+  expect(frames[6]?.events.map((e) => e.type)).toEqual(["speech_start"]);
+});
+
+test("skipped frames do not count toward the fall delay", () => {
+  const seg = new Segmenter(OPTS, 0.01);
+  feed(seg, [0.9, 0.9, 0.9, 0, 0]);
+  seg.skip(10);
+  // The silent run restarts after the gap: 5 frames from index 15.
+  const frames = feed(seg, [0, 0, 0, 0, 0]);
+  expect(frames.slice(0, 4).flatMap((f) => f.events)).toHaveLength(0);
+  expect(frames[3]?.isSpeech).toBe(true);
+  expect(frames[4]?.events).toEqual([{ type: "speech_end", time: 0.15, startTime: 0 }]);
+});
+
+test("smoothing does not average across skipped frames", () => {
+  const seg = new Segmenter({ ...OPTS, smoothWindowSec: 0.03 }, 0.01);
+  feed(seg, [0.9, 0.9, 0.9]);
+  seg.skip(5);
+  expect(seg.process(0).smoothedProbability).toBe(0);
+});
+
+test("maxSpeechSec applies on the first frame processed after a skip", () => {
+  const seg = new Segmenter({ ...OPTS, maxSpeechSec: 0.06 }, 0.01);
+  feed(seg, [0.9, 0.9, 0.9]);
+  seg.skip(10);
+  const frame = seg.process(0.9);
+  expect(frame.events).toEqual([
+    { type: "speech_end", time: 0.13, startTime: 0 },
+    { type: "speech_start", time: 0.13 },
+  ]);
 });
