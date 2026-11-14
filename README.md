@@ -65,7 +65,7 @@ Or feed PCM yourself — chunks of any length, from any source:
 
 ```ts
 const frames = await vad.processChunk(pcm); // Float32Array in [-1, 1] at 16 kHz
-// frames[i]: { time, probability, smoothedProbability, isSpeech, events }
+// frames[i]: { index, time, probability, smoothedProbability, isSpeech, events }
 const last = await vad.flush(); // end of stream: closes an open utterance
 ```
 
@@ -168,8 +168,9 @@ configures the dev server, tests, and library packaging.
   fails the gate instead, so develop on Node 24. CI still runs the test
   suite on Node 22, the consumer floor, by invoking the runner directly.
 - `npm install` brings in the whole toolchain and installs the git hooks
-  (pre-commit: format, lint, typecheck on staged files; commit-msg:
-  conventional commits via commitlint). No global installs needed.
+  (pre-commit: format and lint staged files, typecheck the whole project;
+  commit-msg: conventional commits via commitlint). No global installs
+  needed.
 - `npx playwright install chromium` once: `tests/browser` drives the real
   microphone capture path (AudioContext + AudioWorklet) in headless
   Chromium against its fake media device.
