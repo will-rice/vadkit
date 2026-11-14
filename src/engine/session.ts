@@ -152,7 +152,8 @@ export class VadSession {
     const frames: VadFrame[] = [];
     // A failed inference or a throwing callback must not cost the rest of
     // the chunk its audio, frames or events (the ring and the segmenter have
-    // already moved on), so failures are rethrown at the end.
+    // already moved on), so the first failure is rethrown at the end: the
+    // rejection for one cause is then the same whatever the chunk length.
     const errors: unknown[] = [];
     // Bounded writes keep every emitted event's audio within ring retention,
     // no matter how large the caller's chunk is.
@@ -186,8 +187,7 @@ export class VadSession {
         }
       }
     }
-    if (errors.length === 1) throw errors[0];
-    if (errors.length > 1) throw new AggregateError(errors, "processing failed");
+    if (errors.length > 0) throw errors[0];
     return frames;
   }
 

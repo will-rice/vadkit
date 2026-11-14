@@ -506,3 +506,18 @@ test("a provider failure early in a long chunk does not drop the rest of that ch
     );
   }
 });
+
+test("one failure cause rejects with the same error whatever the chunk length", async () => {
+  const messages: string[] = [];
+  // 1 s is one part, 3 s is three; after dispose every part fails alike.
+  for (const samples of [16000, 48000]) {
+    const vad = await createVad(() => Promise.resolve(fakeProvider()), OPTS);
+    await vad.dispose();
+    const error: unknown = await vad
+      .processChunk(new Float32Array(samples))
+      .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(Error);
+    if (error instanceof Error) messages.push(`${error.name}: ${error.message}`);
+  }
+  expect(messages).toEqual(["Error: stream disposed", "Error: stream disposed"]);
+});
