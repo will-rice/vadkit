@@ -15,8 +15,9 @@ permissions:
 
 # One release at a time: two overlapping runs would both compute the same
 # next version. A release under way is never cancelled; the newest push
-# waits for it (GitHub keeps only the latest waiting run, which releases
-# every commit pushed before it).
+# waits for it, and GitHub keeps only the latest waiting run. That run
+# checks out the tip of main as it is when the run starts, not the commit
+# that triggered it, so it gates and releases everything on main by then.
 concurrency:
   group: release
   cancel-in-progress: false
@@ -32,6 +33,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          # The branch tip, not the push's SHA: a run that waited behind
+          # another release starts after that release's commit reached main,
+          # and semantic-release publishes nothing (and exits 0) from a
+          # checkout that is behind the remote branch.
+          ref: ${{ github.ref }}
           fetch-depth: 0 # semantic-release reads the full history and tags
       - uses: actions/setup-node@v7
         with:
