@@ -150,20 +150,28 @@ export class VadSession {
 
   private async processContiguous(pcm: Float32Array): Promise<VadFrame[]> {
     const frames: VadFrame[] = [];
-    // A throwing callback must not cost later frames their events (the
-    // segmenter has already moved on), so failures are rethrown at the end.
-    const callbackErrors: unknown[] = [];
+    // A failed inference or a throwing callback must not cost the rest of
+    // the chunk its audio, frames or events (the ring and the segmenter have
+    // already moved on), so failures are rethrown at the end.
+    const errors: unknown[] = [];
     // Bounded writes keep every emitted event's audio within ring retention,
     // no matter how large the caller's chunk is.
     for (let offset = 0; offset === 0 || offset < pcm.length; offset += MAX_WRITE_SAMPLES) {
       const part = pcm.subarray(offset, offset + MAX_WRITE_SAMPLES);
       this.ring.write(part);
-      for (const frame of await this.stream.processChunk(part)) {
+      let partFrames: VadFrame[];
+      try {
+        partFrames = await this.stream.processChunk(part);
+      } catch (error) {
+        errors.push(error);
+        continue;
+      }
+      for (const frame of partFrames) {
         frames.push(frame);
         try {
           this.callbacks.onFrame?.(frame);
         } catch (error) {
-          callbackErrors.push(error);
+          errors.push(error);
         }
         for (const event of frame.events) {
           try {
@@ -173,13 +181,13 @@ export class VadSession {
               this.emitSpeechEnd(event);
             }
           } catch (error) {
-            callbackErrors.push(error);
+            errors.push(error);
           }
         }
       }
     }
-    if (callbackErrors.length === 1) throw callbackErrors[0];
-    if (callbackErrors.length > 1) throw new AggregateError(callbackErrors, "callbacks threw");
+    if (errors.length === 1) throw errors[0];
+    if (errors.length > 1) throw new AggregateError(errors, "processing failed");
     return frames;
   }
 

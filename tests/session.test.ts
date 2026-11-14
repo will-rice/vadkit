@@ -476,3 +476,33 @@ test("a start() that fails during a stop() leaves the session ready for a retry"
   await vad.stop();
   expect(stops).toEqual({ failing: 0, good: 1 });
 });
+
+test("a provider failure early in a long chunk does not drop the rest of that chunk", async () => {
+  const good = fakeProvider();
+  let calls = 0;
+  const flaky: VadProvider = {
+    ...good,
+    process(samples: Float32Array): Promise<Float32Array> {
+      calls += 1;
+      return calls === 1 ? Promise.reject(new Error("model exploded")) : good.process(samples);
+    },
+  };
+  const utterances: Utterance[] = [];
+  const vad = await createVad(() => Promise.resolve(flaky), {
+    ...OPTS,
+    onSpeechEnd: (u) => utterances.push(u),
+  });
+  // One 3 s chunk, processed in 1 s parts; the first part's inference
+  // fails. Speech occupies 2.0-2.5 s of this chunk and 0.5-1.0 s of the next.
+  const pcm = new Float32Array(72000);
+  pcm.fill(0.9, 32000, 40000);
+  pcm.fill(0.9, 56000, 64000);
+  await expect(vad.processChunk(pcm.subarray(0, 48000))).rejects.toThrow("model exploded");
+  await vad.processChunk(pcm.subarray(48000));
+  expect(utterances.map((u) => Math.round(u.startTime * 2) / 2)).toEqual([2, 3.5]);
+  for (const u of utterances) {
+    expect(u.audio).toEqual(
+      pcm.slice(Math.round(u.startTime * 16000), Math.round(u.endTime * 16000)),
+    );
+  }
+});
