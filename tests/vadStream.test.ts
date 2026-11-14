@@ -1,6 +1,6 @@
 import { expect, test } from "vite-plus/test";
 
-import { createVad, VadStream } from "#index.ts";
+import { createVad, DEFAULT_VAD_OPTIONS, VadStream } from "#index.ts";
 import type { VadOptions, VadProvider } from "#index.ts";
 
 import { fakeProvider } from "./helpers.ts";
@@ -39,7 +39,7 @@ test("frames and events flow from chunks of arbitrary size", async () => {
   expect(ends[0]).toBeLessThanOrEqual(1.05);
 });
 
-test("un-awaited overlapping calls equal sequential results", async () => {
+test("un-awaited overlapping session calls equal sequential results", async () => {
   const mk = () => createVad(() => Promise.resolve(fakeProvider()), OPTS);
   const pcm = new Float32Array(8000).map(() => Math.random());
   const chunks = [];
@@ -54,12 +54,52 @@ test("un-awaited overlapping calls equal sequential results", async () => {
   expect(overlapping).toEqual(sequential);
 });
 
-test("reset is ordered behind in-flight calls and restarts frame indexing", async () => {
+test("reset through the session restarts frame indexing", async () => {
   const vad = await createVad(() => Promise.resolve(fakeProvider()), OPTS);
   const first = await vad.processChunk(new Float32Array(1000));
   await vad.reset();
   const second = await vad.processChunk(new Float32Array(1000));
   expect(second.map((f) => f.index)).toEqual(first.map((f) => f.index));
+});
+
+/** fakeProvider whose first process() call resolves after its later ones. */
+function slowFirstProvider(): VadProvider {
+  const provider = fakeProvider();
+  let calls = 0;
+  return {
+    ...provider,
+    async process(samples: Float32Array): Promise<Float32Array> {
+      calls += 1;
+      if (calls === 1) await new Promise((resolve) => setTimeout(resolve, 20));
+      return provider.process(samples);
+    },
+  };
+}
+
+test("VadStream returns overlapping calls' frames in submission order", async () => {
+  const quiet = new Float32Array(1000).fill(0.2);
+  const loud = new Float32Array(1000).fill(0.8);
+  const sequentialStream = new VadStream(fakeProvider(), { ...DEFAULT_VAD_OPTIONS, ...OPTS });
+  const sequential = [
+    await sequentialStream.processChunk(quiet),
+    await sequentialStream.processChunk(loud),
+  ];
+
+  const stream = new VadStream(slowFirstProvider(), { ...DEFAULT_VAD_OPTIONS, ...OPTS });
+  const overlapping = await Promise.all([stream.processChunk(quiet), stream.processChunk(loud)]);
+  expect(overlapping).toEqual(sequential);
+  expect(overlapping.flat().map((f) => f.index)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+});
+
+test("VadStream applies a reset issued mid-call after that call's frames", async () => {
+  const stream = new VadStream(slowFirstProvider(), { ...DEFAULT_VAD_OPTIONS, ...OPTS });
+  const inFlight = stream.processChunk(new Float32Array(1000));
+  const reset = stream.reset();
+  const next = stream.processChunk(new Float32Array(1000));
+  expect((await inFlight).map((f) => f.index)).toEqual([0, 1, 2, 3]);
+  await reset;
+  // 4 frames again: the reset also dropped the first call's buffered tail.
+  expect((await next).map((f) => f.index)).toEqual([0, 1, 2, 3]);
 });
 
 test("use after dispose rejects with a concise error", async () => {
