@@ -26,8 +26,15 @@ for app in vite webpack; do
   for entry in webrtc-only silero; do
     (cd "$WORK/$app" && ENTRY="$entry" npm run -s build >/dev/null)
   done
-  if grep -rq onnxruntime "$WORK/$app/out/webrtc-only"; then
+  # grep exits 1 for "no match" and 2 when it cannot read the bundle (e.g.
+  # the output path moved); only the former proves the bundle is ort-free.
+  found=0
+  grep -rq onnxruntime "$WORK/$app/out/webrtc-only" || found=$?
+  if [ "$found" -eq 0 ]; then
     echo "FAIL: $app webrtc-only bundle contains onnxruntime" >&2
+    exit 1
+  elif [ "$found" -ne 1 ]; then
+    echo "FAIL: $app webrtc-only bundle not readable at $WORK/$app/out/webrtc-only" >&2
     exit 1
   fi
   if ! find "$WORK/$app/out/silero" -name '*.onnx' | grep -q .; then
