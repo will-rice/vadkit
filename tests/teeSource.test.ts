@@ -166,3 +166,27 @@ test("the last tee to stop receives what the source delivers while stopping", as
   deliver(new Float32Array(9));
   expect(received).toEqual([[], [7]]);
 });
+
+test("tees that all stop while the underlying start is pending leave the source stopped", async () => {
+  const calls: string[] = [];
+  const source: AudioSource = {
+    start(): Promise<void> {
+      calls.push("start");
+      return Promise.resolve();
+    },
+    stop(): Promise<void> {
+      calls.push("stop");
+      return Promise.resolve();
+    },
+  };
+  const [a, b] = teeSource(source, 2);
+  if (a === undefined || b === undefined) throw new Error("expected two tees");
+  await a.start(() => undefined);
+  const started = b.start(() => undefined);
+  await a.stop();
+  await b.stop();
+  await started;
+  expect(calls).toEqual(["start", "stop"]);
+  await Promise.all([a.start(() => undefined), b.start(() => undefined)]);
+  expect(calls).toEqual(["start", "stop", "start"]);
+});
