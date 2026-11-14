@@ -24,15 +24,15 @@ appreciate an issue or PR saying so.
 ## Install
 
 ```sh
-npm install vadkit onnxruntime-web
+npm install vadkit
 ```
 
-`onnxruntime-web` is a required peer dependency (npm installs it
-automatically) — the FireRedVAD, Silero and FSMN-VAD models are ONNX. Models ship
-inside the package under `models/`. Apps using only the WebRTC provider
-still bundle ort-free: the subpath entries are isolated, so bundlers
-tree-shake onnxruntime-web out entirely (verified: a webrtc-only consumer
-builds to 38 KB total).
+`onnxruntime-web` is a dependency of vadkit, installed with it — the
+FireRedVAD, Silero and FSMN-VAD models are ONNX, so every provider works
+out of the box. Models ship inside the package under `models/`. Apps using
+only the WebRTC provider still bundle ort-free: the subpath entries are
+isolated, so bundlers tree-shake onnxruntime-web out entirely (verified by
+the packaging check: a webrtc-only consumer builds to 38 KB total).
 
 ## Quickstart
 
