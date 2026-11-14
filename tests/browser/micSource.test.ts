@@ -60,3 +60,18 @@ test("overlapping stop() calls all resolve", async () => {
   await source.start(() => undefined);
   await Promise.all([source.stop(), source.stop()]);
 });
+
+test("stop() during a pending start() rejects the start and leaves no capture running", async () => {
+  const chunks: Float32Array[] = [];
+  const source = micSource();
+  const started = source.start((pcm) => chunks.push(pcm));
+  const outcome = started.then(
+    () => "resolved",
+    (error: unknown) => String(error),
+  );
+  await source.stop();
+  const delivered = chunks.length;
+  expect(await outcome).toMatch(/stopped before start\(\) completed/);
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  expect(chunks.length).toBe(delivered);
+});
