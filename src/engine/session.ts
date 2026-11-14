@@ -44,8 +44,8 @@ export class VadSession {
   private readonly callbacks: VadSessionCallbacks;
   private readonly ring: AudioRingBuffer;
   private readonly queue = new SerialQueue();
+  private readonly lifecycle = new SerialQueue();
   private source: AudioSource | null = null;
-  private stopping: Promise<void> | null = null;
 
   constructor(stream: VadStream, callbacks: VadSessionCallbacks) {
     this.stream = stream;
@@ -78,11 +78,13 @@ export class VadSession {
     return this.queue.run(() => this.processContiguous(pcm));
   }
 
-  /** Capture from a source until stop(). */
-  async start(source: AudioSource): Promise<void> {
-    if (this.source !== null) throw new Error("session already started");
-    this.source = source;
-    try {
+  /**
+   * Capture from a source until stop(). Starts and stops run one after
+   * another, in call order, so neither acts on a half-finished transition.
+   */
+  start(source: AudioSource): Promise<void> {
+    return this.lifecycle.run(async () => {
+      if (this.source !== null) throw new Error("session already started");
       await source.start((pcm) => {
         const result = this.queue.run(() => this.processContiguous(pcm));
         const onError = this.callbacks.onError;
@@ -92,29 +94,13 @@ export class VadSession {
           void result;
         }
       });
-    } catch (error) {
-      this.source = null;
-      throw error;
-    }
+      this.source = source;
+    });
   }
 
   /** Stop capture, then flush so a still-open utterance is delivered. */
   stop(): Promise<void> {
-    // Overlapping calls (and dispose) share one stop, so none of them flushes
-    // or releases the stream while the source is still delivering its tail.
-    this.stopping ??= (async (): Promise<void> => {
-      try {
-        await this.source?.stop();
-      } finally {
-        this.source = null;
-        try {
-          await this.flush();
-        } finally {
-          this.stopping = null;
-        }
-      }
-    })();
-    return this.stopping;
+    return this.lifecycle.run(() => this.stopAndFlush());
   }
 
   /**
@@ -133,13 +119,15 @@ export class VadSession {
   }
 
   /** Stop and flush, then release the provider. Unusable afterwards; repeat calls are no-ops. */
-  async dispose(): Promise<void> {
-    if (this.stream.disposed) return;
-    try {
-      await this.stop();
-    } finally {
-      await this.stream.dispose();
-    }
+  dispose(): Promise<void> {
+    return this.lifecycle.run(async () => {
+      if (this.stream.disposed) return;
+      try {
+        await this.stopAndFlush();
+      } finally {
+        await this.stream.dispose();
+      }
+    });
   }
 
   /** Start a new utterance stream. Ordered behind in-flight processing. */
@@ -148,6 +136,16 @@ export class VadSession {
       await this.stream.reset();
       this.ring.reset();
     });
+  }
+
+  /** The body of stop(); callers hold the lifecycle queue. */
+  private async stopAndFlush(): Promise<void> {
+    try {
+      await this.source?.stop();
+    } finally {
+      this.source = null;
+      await this.flush();
+    }
   }
 
   private async processContiguous(pcm: Float32Array): Promise<VadFrame[]> {

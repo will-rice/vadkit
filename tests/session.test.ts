@@ -426,3 +426,53 @@ test.for([
     }
   },
 );
+
+test("a stop() in flight does not forget a source started meanwhile", async () => {
+  const vad = await createVad(() => Promise.resolve(fakeProvider()), OPTS);
+  let stops = 0;
+  const source: AudioSource = {
+    start: () => Promise.resolve(),
+    stop(): Promise<void> {
+      stops += 1;
+      return Promise.resolve();
+    },
+  };
+  const stopped = vad.stop();
+  await vad.start(source);
+  await stopped;
+  await expect(vad.start(fakeSource(new Float32Array(1000), 500))).rejects.toThrow(
+    /already started/,
+  );
+  await vad.stop();
+  expect(stops).toBe(1);
+});
+
+test("a start() that fails during a stop() leaves the session ready for a retry", async () => {
+  const vad = await createVad(() => Promise.resolve(fakeProvider()), OPTS);
+  const stops = { failing: 0, good: 0 };
+  const failing: AudioSource = {
+    async start(): Promise<void> {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      throw new Error("denied");
+    },
+    stop(): Promise<void> {
+      stops.failing += 1;
+      return Promise.resolve();
+    },
+  };
+  const good: AudioSource = {
+    start: () => Promise.resolve(),
+    stop(): Promise<void> {
+      stops.good += 1;
+      return Promise.resolve();
+    },
+  };
+  const started = vad.start(failing);
+  const stopped = vad.stop();
+  await expect(started).rejects.toThrow("denied");
+  await vad.start(good);
+  await stopped;
+  expect(stops).toEqual({ failing: 0, good: 0 });
+  await vad.stop();
+  expect(stops).toEqual({ failing: 0, good: 1 });
+});
