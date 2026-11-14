@@ -97,43 +97,38 @@ export class Segmenter {
     const voiced = smoothed >= this.options.speechThreshold;
     const events: VadEvent[] = [];
 
-    switch (this.state) {
-      case "silence":
-        if (voiced) {
-          this.state = "possible_speech";
-          this.voicedRunStart = this.index;
-        }
-        break;
-      case "possible_speech":
-        if (!voiced) {
-          this.state = "silence";
-        } else if (this.index - this.voicedRunStart + 1 >= this.riseDelayFrames) {
-          this.state = "speech";
-          this.segmentStartTime = Math.max(
-            0,
-            this.lastEndTime,
-            this.voicedRunStart * this.frameSec - this.options.prePadSec,
-          );
-          events.push({ type: "speech_start", time: this.segmentStartTime });
-        }
-        break;
-      case "speech":
-        if (!voiced) {
-          this.state = "possible_silence";
-          this.silenceRunStart = this.index;
-        }
-        break;
-      case "possible_silence":
-        if (voiced) {
-          this.state = "speech";
-        } else if (this.index - this.silenceRunStart + 1 >= this.fallDelayFrames) {
-          this.state = "silence";
-          const endTime = this.silenceRunStart * this.frameSec;
-          events.push({ type: "speech_end", time: endTime, startTime: this.segmentStartTime });
-          this.lastEndTime = endTime;
-          this.segmentStartTime = -1;
-        }
-        break;
+    // A run begins on this frame and the same frame counts toward its delay,
+    // so a one-frame delay is confirmed below without waiting for the next.
+    if (this.state === "silence" && voiced) {
+      this.state = "possible_speech";
+      this.voicedRunStart = this.index;
+    } else if (this.state === "speech" && !voiced) {
+      this.state = "possible_silence";
+      this.silenceRunStart = this.index;
+    }
+
+    if (this.state === "possible_speech") {
+      if (!voiced) {
+        this.state = "silence";
+      } else if (this.index - this.voicedRunStart + 1 >= this.riseDelayFrames) {
+        this.state = "speech";
+        this.segmentStartTime = Math.max(
+          0,
+          this.lastEndTime,
+          this.voicedRunStart * this.frameSec - this.options.prePadSec,
+        );
+        events.push({ type: "speech_start", time: this.segmentStartTime });
+      }
+    } else if (this.state === "possible_silence") {
+      if (voiced) {
+        this.state = "speech";
+      } else if (this.index - this.silenceRunStart + 1 >= this.fallDelayFrames) {
+        this.state = "silence";
+        const endTime = this.silenceRunStart * this.frameSec;
+        events.push({ type: "speech_end", time: endTime, startTime: this.segmentStartTime });
+        this.lastEndTime = endTime;
+        this.segmentStartTime = -1;
+      }
     }
 
     // Overlong segments: split one still voiced; end one already trailing

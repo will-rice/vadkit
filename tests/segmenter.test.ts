@@ -192,3 +192,63 @@ test("maxSpeechSec applies on the first frame processed after a skip", () => {
     { type: "speech_start", time: 0.13 },
   ]);
 });
+
+test("a one-frame rise or fall delay confirms on the frame that begins the run", () => {
+  const oneFrame = {
+    ...OPTS,
+    smoothWindowSec: 0.03,
+    riseDelaySec: 0.03,
+    fallDelaySec: 0.03,
+    prePadSec: 0.09,
+  };
+  const frames = feed(new Segmenter(oneFrame, 0.03), [0, 1, 0, 0, 1, 1, 0, 0, 0]);
+  // Pre-pad clamps the first start to 0 and the second to the previous end.
+  expect(frames.map((f) => f.events)).toEqual([
+    [],
+    [{ type: "speech_start", time: 0 }],
+    [{ type: "speech_end", time: 2 * 0.03, startTime: 0 }],
+    [],
+    [{ type: "speech_start", time: 2 * 0.03 }],
+    [],
+    [{ type: "speech_end", time: 6 * 0.03, startTime: 2 * 0.03 }],
+    [],
+    [],
+  ]);
+  const inSpeech = frames.flatMap((f) => (f.isSpeech ? [f.index] : []));
+  expect(inSpeech).toEqual([1, 4, 5]);
+});
+
+test("zero rise and fall delays clamp to one frame", () => {
+  const zero = { ...OPTS, riseDelaySec: 0, fallDelaySec: 0, prePadSec: 0 };
+  const events = feed(new Segmenter(zero, 0.01), [0, 0, 0, 0.9, 0]).map((f) => f.events);
+  expect(events).toEqual([
+    [],
+    [],
+    [],
+    [{ type: "speech_start", time: 0.03 }],
+    [{ type: "speech_end", time: 0.04, startTime: 0.03 }],
+  ]);
+});
+
+test("with one-frame delays maxSpeechSec still splits, and flush and skip see no pending run", () => {
+  const oneFrame = { ...OPTS, riseDelaySec: 0.01, fallDelaySec: 0.01, maxSpeechSec: 0.03 };
+  const seg = new Segmenter(oneFrame, 0.01);
+  const events = feed(seg, [0, 0, 0.9, 0.9, 0.9, 0.9]).map((f) => f.events);
+  // Start at index 2 pre-padded to 0; the split lands on the frame at 0.03 s.
+  expect(events).toEqual([
+    [],
+    [],
+    [{ type: "speech_start", time: 0 }],
+    [
+      { type: "speech_end", time: 0.03, startTime: 0 },
+      { type: "speech_start", time: 0.03 },
+    ],
+    [],
+    [],
+  ]);
+  seg.skip(2);
+  expect(seg.process(0).events).toEqual([{ type: "speech_end", time: 0.08, startTime: 0.03 }]);
+  expect(seg.flush()).toEqual([]);
+  expect(seg.process(0.9).events).toEqual([{ type: "speech_start", time: 0.08 }]);
+  expect(seg.flush()).toEqual([{ type: "speech_end", time: 0.1, startTime: 0.08 }]);
+});
