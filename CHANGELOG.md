@@ -1,3 +1,9 @@
+## [0.4.1](https://github.com/will-rice/vadkit/compare/v0.4.0...v0.4.1) (2026-11-14)
+
+### Bug Fixes
+
+- keep utterances correct through failures, restarts and bad options ([#7](https://github.com/will-rice/vadkit/issues/7)) ([cc96067](https://github.com/will-rice/vadkit/commit/cc960677c582fada3379888a150a536e63c33164))
+
 ## [0.4.0](https://github.com/will-rice/vadkit/compare/v0.3.0...v0.4.0) (2026-09-06)
 
 ### Features
