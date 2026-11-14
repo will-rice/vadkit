@@ -51,8 +51,22 @@ export class VadSession {
     this.stream = stream;
     this.callbacks = callbacks;
     const o = stream.options;
+    const { windowSamples, hopSamples } = stream.provider;
+    // An event is emitted while processing a frame, and slices from its
+    // segment's start. The ring must still hold that start, which is behind
+    // the ring's write position by the sum of:
+    // - the segment's age at that frame: under maxSpeechSec at the previous
+    //   frame (or it was split there) plus one hop, or riseDelaySec +
+    //   prePadSec for a segment that starts at this frame;
+    // - the frame's lag behind the ring: under one window the stream had
+    //   buffered before this write, plus the write itself.
+    // Frames lost to a failed inference are not checked against maxSpeechSec,
+    // so a segment spanning a failure can outgrow this bound.
     this.ring = new AudioRingBuffer(
-      Math.ceil((o.maxSpeechSec + o.prePadSec + o.fallDelaySec) * SAMPLE_RATE + MAX_WRITE_SAMPLES),
+      Math.ceil(Math.max(o.maxSpeechSec, o.riseDelaySec + o.prePadSec) * SAMPLE_RATE) +
+        hopSamples +
+        windowSamples +
+        MAX_WRITE_SAMPLES,
     );
   }
 

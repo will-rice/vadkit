@@ -395,3 +395,34 @@ test("overlapping stop() and dispose() share one source stop, so its tail is del
   expect(utterances).toHaveLength(1);
   expect(utterances[0]?.endTime).toBeGreaterThan(1.45);
 });
+
+test.for([
+  [512, 512],
+  [1040, 160],
+] as const)(
+  "a force-split never slices evicted audio with a %i/%i provider",
+  async ([windowSamples, hopSamples]) => {
+    const provider: VadProvider = {
+      ...fakeProvider(windowSamples, hopSamples),
+      process: (samples) =>
+        Promise.resolve(
+          new Float32Array((samples.length - windowSamples) / hopSamples + 1).fill(1),
+        ),
+    };
+    const utterances: Utterance[] = [];
+    const vad = await createVad(() => Promise.resolve(provider), {
+      prePadSec: 0,
+      fallDelaySec: 0,
+      maxSpeechSec: 1,
+      onSpeechEnd: (u) => utterances.push(u),
+    });
+    // The stream holds back up to a window of samples the ring has already
+    // taken, so frame times trail the ring by more than one write.
+    await vad.processChunk(new Float32Array(windowSamples - 1));
+    for (let i = 0; i < 4; i++) await vad.processChunk(new Float32Array(16000));
+    expect(utterances.length).toBeGreaterThanOrEqual(3);
+    for (const u of utterances) {
+      expect(u.audio.length).toBe(Math.round((u.endTime - u.startTime) * 16000));
+    }
+  },
+);
