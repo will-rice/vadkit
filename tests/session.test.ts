@@ -358,3 +358,40 @@ test("createVad releases the provider when the options are rejected", async () =
   ).rejects.toThrow(/speechThreshold must be a finite/);
   expect(disposed).toBe(true);
 });
+
+test("overlapping stop() and dispose() share one source stop, so its tail is delivered", async () => {
+  const utterances: Utterance[] = [];
+  const errors: unknown[] = [];
+  const vad = await createVad(() => Promise.resolve(fakeProvider()), {
+    ...OPTS,
+    onSpeechEnd: (u) => utterances.push(u),
+    onError: (e) => errors.push(e),
+  });
+  // A source that, like the microphone, stops asynchronously and delivers
+  // its last partial batch while doing so.
+  let deliver: (pcm: Float32Array) => void = () => undefined;
+  let stops = 0;
+  const source: AudioSource = {
+    start(onChunk): Promise<void> {
+      deliver = onChunk;
+      return Promise.resolve();
+    },
+    async stop(): Promise<void> {
+      stops += 1;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      deliver(new Float32Array(8000).fill(0.9));
+    },
+  };
+  await vad.start(source);
+  // 0.5 s silence then 0.5 s speech; the tail adds another 0.5 s of speech.
+  const pcm = new Float32Array(16000);
+  pcm.fill(0.9, 8000);
+  deliver(pcm);
+  const stopped = vad.stop();
+  await Promise.all([vad.dispose(), vad.dispose()]);
+  await stopped;
+  expect(stops).toBe(1);
+  expect(errors).toEqual([]);
+  expect(utterances).toHaveLength(1);
+  expect(utterances[0]?.endTime).toBeGreaterThan(1.45);
+});

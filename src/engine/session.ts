@@ -45,6 +45,7 @@ export class VadSession {
   private readonly ring: AudioRingBuffer;
   private readonly queue = new SerialQueue();
   private source: AudioSource | null = null;
+  private stopping: Promise<void> | null = null;
 
   constructor(stream: VadStream, callbacks: VadSessionCallbacks) {
     this.stream = stream;
@@ -84,14 +85,22 @@ export class VadSession {
   }
 
   /** Stop capture, then flush so a still-open utterance is delivered. */
-  async stop(): Promise<void> {
-    const source = this.source;
-    this.source = null;
-    try {
-      await source?.stop();
-    } finally {
-      await this.flush();
-    }
+  stop(): Promise<void> {
+    // Overlapping calls (and dispose) share one stop, so none of them flushes
+    // or releases the stream while the source is still delivering its tail.
+    this.stopping ??= (async (): Promise<void> => {
+      try {
+        await this.source?.stop();
+      } finally {
+        this.source = null;
+        try {
+          await this.flush();
+        } finally {
+          this.stopping = null;
+        }
+      }
+    })();
+    return this.stopping;
   }
 
   /**
