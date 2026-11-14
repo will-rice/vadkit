@@ -75,3 +75,47 @@ test("stop() during a pending start() rejects the start and leaves no capture ru
   await new Promise((resolve) => setTimeout(resolve, 300));
   expect(chunks.length).toBe(delivered);
 });
+
+test("a start() during a stop() in flight waits for it and releases every stream it opened", async () => {
+  const devices = navigator.mediaDevices;
+  const native = devices.getUserMedia.bind(devices);
+  // Opened up front and handed out without delay, so the restart's stream
+  // always arrives while the stop is still draining the worklet.
+  const streams = [await native({ audio: true }), await native({ audio: true })];
+  let opened = 0;
+  devices.getUserMedia = (): Promise<MediaStream> => {
+    const stream = streams[opened];
+    opened += 1;
+    return stream === undefined
+      ? Promise.reject(new Error("unexpected getUserMedia call"))
+      : Promise.resolve(stream);
+  };
+  try {
+    const chunks: Float32Array[] = [];
+    const source = micSource();
+    await source.start(() => undefined);
+    const stopped = source.stop();
+    const restarted = source.start((pcm) => chunks.push(pcm));
+    await stopped;
+    await restarted;
+    await waitFor(() => chunks.length >= 1);
+    await source.stop();
+  } finally {
+    devices.getUserMedia = native;
+  }
+  const states = streams.flatMap((stream) => stream.getTracks().map((track) => track.readyState));
+  expect(states).toEqual(["ended", "ended"]);
+});
+
+test("start() while already started rejects and leaves the capture running", async () => {
+  const chunks: Float32Array[] = [];
+  const source = micSource();
+  await source.start((pcm) => chunks.push(pcm));
+  try {
+    await expect(source.start(() => undefined)).rejects.toThrow("microphone already started");
+    const delivered = chunks.length;
+    await waitFor(() => chunks.length > delivered);
+  } finally {
+    await source.stop();
+  }
+});

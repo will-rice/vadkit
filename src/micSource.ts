@@ -1,3 +1,4 @@
+import { SerialQueue } from "#engine/serialQueue.ts";
 import type { AudioSource } from "#engine/session.ts";
 import { SAMPLE_RATE } from "#types.ts";
 
@@ -48,18 +49,19 @@ export interface MicSourceOptions {
 /**
  * Microphone AudioSource: getUserMedia + a 16 kHz AudioContext + AudioWorklet.
  * start() rejects (and releases the microphone) if the browser does not
- * honor the 16 kHz request, so a session never sees another rate. stop()
- * during a pending start() makes that start() reject, and resolves once the
- * microphone it opened is released.
+ * honor the 16 kHz request, so a session never sees another rate. Starts
+ * and stops run one after another, in call order. stop() during a pending
+ * start() makes that start() reject, and resolves once the microphone it
+ * opened is released; start() on a started source rejects.
  */
 export function micSource(options: MicSourceOptions = {}): AudioSource {
   let context: AudioContext | null = null;
   let mediaStream: MediaStream | null = null;
   let port: MessagePort | null = null;
   let flushResolve: (() => void) | null = null;
-  let stopping: Promise<void> | null = null;
-  let starting: Promise<void> | null = null;
-  let stopRequested = false;
+  const lifecycle = new SerialQueue();
+  // Counts stop() calls, so a start() can tell one was made after it.
+  let stopCalls = 0;
 
   async function release(): Promise<void> {
     mediaStream?.getTracks().forEach((track) => {
@@ -73,7 +75,9 @@ export function micSource(options: MicSourceOptions = {}): AudioSource {
 
   return {
     start(onChunk: (pcm: Float32Array) => void): Promise<void> {
-      starting = (async (): Promise<void> => {
+      const stopCallsBefore = stopCalls;
+      return lifecycle.run(async () => {
+        if (context !== null) throw new Error("microphone already started");
         try {
           mediaStream = await navigator.mediaDevices.getUserMedia({
             audio: options.constraints ?? true,
@@ -107,25 +111,20 @@ export function micSource(options: MicSourceOptions = {}): AudioSource {
               "AudioContext is not running — start the microphone from a user gesture",
             );
           }
-          if (stopRequested) throw new Error("microphone stopped before start() completed");
+          if (stopCalls !== stopCallsBefore) {
+            throw new Error("microphone stopped before start() completed");
+          }
         } catch (error) {
           // Never leave a live mic behind a failed start.
           await release();
           throw error;
         }
-      })();
-      return starting;
+      });
     },
     stop(): Promise<void> {
-      // Overlapping calls share one stop: a second flush request would take
-      // the first one's reply and leave it waiting forever.
-      stopping ??= (async (): Promise<void> => {
+      stopCalls += 1;
+      return lifecycle.run(async () => {
         try {
-          // A start() still in flight has nothing to release yet: make it
-          // reject and wait until it has released what it acquired.
-          stopRequested = true;
-          await Promise.allSettled([starting]);
-          stopRequested = false;
           // Drain the worklet's partial batch so the tail of the last
           // utterance reaches the session before capture ends.
           if (port !== null && context?.state === "running") {
@@ -136,10 +135,8 @@ export function micSource(options: MicSourceOptions = {}): AudioSource {
           }
         } finally {
           await release();
-          stopping = null;
         }
-      })();
-      return stopping;
+      });
     },
   };
 }
