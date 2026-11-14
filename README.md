@@ -226,8 +226,10 @@ each push to `main` whose conventional commits warrant a release computes
 the version, updates CHANGELOG.md and package.json, tags, creates the
 GitHub release, and publishes to npm via
 [trusted publishing](https://docs.npmjs.com/trusted-publishers) (OIDC, no
-tokens; provenance attached automatically); `npm publish` runs the full
-gate (typecheck, parity suite, build with publint/attw) on the way out.
+tokens; provenance attached automatically). The release workflow runs the
+full gate (typecheck, parity suite, build with publint/attw) before
+semantic-release, so a failing check stops the run before anything is
+tagged; `npm publish` repeats the gate on the way out.
 Pre-1.0, breaking changes bump the minor version (a `releaseRules`
 override in `.releaserc.json`); delete that override to release 1.0.0 on
 the next breaking change.

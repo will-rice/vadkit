@@ -3,14 +3,23 @@ name: Release
 # semantic-release analyzes conventional commits on every push to main:
 # when they warrant a release it computes the version, updates CHANGELOG.md
 # and package.json (committed back with [skip ci]), tags, creates the
-# GitHub release, and publishes to npm — all in one run. Config in
-# .releaserc.json; pre-1.0, breaking changes bump the minor version.
+# GitHub release, and publishes to npm — all in one run, after the quality
+# gate below has passed. Config in .releaserc.json; pre-1.0, breaking
+# changes bump the minor version.
 on:
   push:
     branches: [main]
 
 permissions:
   contents: read
+
+# One release at a time: two overlapping runs would both compute the same
+# next version. A release under way is never cancelled; the newest push
+# waits for it (GitHub keeps only the latest waiting run, which releases
+# every commit pushed before it).
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -34,10 +43,16 @@ jobs:
           # npm think credentials are configured and skip the OIDC exchange
           # trusted publishing depends on (no NPM_TOKEN is set anywhere).
       - run: npm ci
-      # prepublishOnly runs typecheck, the full suite (Node and Chromium
-      # projects), and the build (with publint + attw) before anything
-      # reaches the registry, so the browser must exist on this runner.
+      # semantic-release pushes the tag and the release commit before it
+      # publishes, so a check that first fails inside `npm publish`
+      # (prepublishOnly) leaves a version tagged but never on npm. Run the
+      # same gate here first: typecheck, the full suite (Node and Chromium
+      # projects, so the browser must exist on this runner), and the build
+      # (with publint + attw). prepublishOnly repeats it at publish time.
       - run: npx playwright install --with-deps chromium
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
       - run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
